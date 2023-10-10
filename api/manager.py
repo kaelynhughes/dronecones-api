@@ -10,7 +10,7 @@ from api.db import get_db
 bp = Blueprint("manager", __name__, url_prefix="/manager")
 
 
-@bp.route("/orders", methods="GET")
+@bp.route("/orders", methods=["GET"])
 def orders():
     db = get_db()
     # get all orders, or a specific number
@@ -19,7 +19,7 @@ def orders():
     # this will be used in account management as well
 
 
-@bp.route("/product", methods=("GET"))
+@bp.route("/product", methods=["GET"])
 def accounting():
     if request.method == "GET":
         db = get_db()
@@ -34,7 +34,7 @@ def accounting():
         # add a new product
 
 
-@bp.route("/user", methods=("GET", "PUT"))
+@bp.route("/user", methods=["GET", "PUT"])
 def user():
     if request.method == "GET":
         db = get_db()

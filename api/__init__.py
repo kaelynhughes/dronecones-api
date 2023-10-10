@@ -1,6 +1,6 @@
 import os
 from flask import Flask
-from . import db, auth
+from . import db, auth, customer, manager, employee
 
 
 # the application factory! lets us start the app running
@@ -35,5 +35,8 @@ def create_app(test_config=None):
 
     db.init_app(app)
     app.register_blueprint(auth.bp)
+    app.register_blueprint(customer.bp)
+    app.register_blueprint(employee.bp)
+    app.register_blueprint(manager.bp)
 
     return app
