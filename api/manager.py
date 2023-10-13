@@ -65,23 +65,41 @@ def accounting():
         db = get_db()
         error = None
         query = """
-            SELECT
-            FROM
-            WHERE
+            SELECT stock
+            FROM product
+            WHERE product_type = {item_to_change}
             """
+        stock = db.execute(query).fetchone()
 
+        if stock is None:
+            error = "Not implemented"
+        elif len(user) == 0:
+            error = "Empty table"
+
+        if error:
+            return json.dumps({"error": error})
+        else:
+            return json.dumps({"stock": {user_input}})
         # update record on one specific product
 
     if request.method == "POST":
+        # add a new product
         db = get_db()
         error = None
         query = """
-            SELECT
-            FROM
-            WHERE
+            SELECT *
+            FROM product
             """
+        menu = db.execute(query).fetchall()
+        if new_item not in menu:
+            menu.append(new_item)
+        else:
+            error = "Item already in menu"
 
-        # add a new product
+        if error:
+            return json.dumps({"error": error})
+        else:
+            return json.dumps({"menu": menu})
 
 
 @bp.route("/user", methods=["GET", "PUT"])
@@ -111,4 +129,25 @@ def user():
 
     if request.method == "PUT":
         db = get_db()
+        error = None
+        query = """
+            SELECT is_active
+            FROM user
+            WHERE username = {search_term}
+            """
+        user = db.execute(query).fetchone()
+
+        if user is None:
+            error = "Not implemented"
+        elif len(user) == 0:
+            error = "Empty table"
+
         # update a user's info - this will be used to ban them
+
+        if error:
+            return json.dumps({"error": error})
+        else:
+            if user.is_active == 0:
+                return json.dumps({"is_active": 1})
+            else:
+                return json.dumps({"is_active": 0})
