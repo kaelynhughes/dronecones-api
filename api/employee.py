@@ -51,7 +51,7 @@ def drone():
         display_name = request.form["display_name"]
         drone_size = request.form["drone_size"]
         serial_number = request.form["serial_number"]
-        owner_id = 1
+        owner_id = request.form["owner_id"]
         is_active = 1
         # session.get("user_id")
         db = get_db()
@@ -79,8 +79,48 @@ def drone():
 
     if request.method == "DELETE":
         db = get_db()
+        serial_number = request.form["serial_number"]
+
+        if not serial_number:
+            error = "Serial Number is required"
+
+        if error is None:
+            try:
+                db.execute(
+                    "Delete From drone where serial_number = ?", #will never fail because of how sql delete works
+                    (serial_number),
+                )
+                db.commit()
+            except db.IntegrityError:
+                error = f"Couldn't delete drone with serial {serial_number} because it does not exist."
+            else:
+                return json.dumps({"deleted drone with serial ": serial_number})
+        return json.dumps({"error": error})
+
         # delete a drone's record
 
     if request.method == "PUT":
         db = get_db()
+        serial_number = request.form["serial_number"]
+        display_name = request.form["display_name"]
+        is_active = request.form["is_active"]
+
+        if not serial_number:
+            error = "Serial Number is required"
+        elif not display_name:
+            error = "Display Name is required."
+        elif not is_active:
+            error = "Active State is required."
+
+        try:
+            db.execute(
+                "UPDATE drone SET display_name = ?, is_active = ? WHERE serial_number = ?",
+                (display_name, is_active, serial_number),
+            )
+            db.commit()
+        except db.IntegrityError:
+            error = f"Couldn't find drone with serial {serial_number} because it does not exist."
+        else:
+            return json.dumps({"Updated drone with serial ": serial_number})
+        return json.dumps({"error": error})
         # update a drone's record - change info, deactivate
