@@ -14,7 +14,7 @@ CREATE TABLE user (
 );
 
 CREATE TABLE drone (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  serial_number INTEGER PRIMARY KEY,
   display_name TEXT NOT NULL,
   is_active INTEGER NOT NULL,
   drone_size INTEGER NOT NULL,

@@ -24,7 +24,7 @@ def drones():
     """
     drones = db.execute(query, owner_id).fetchall()
 
-    if drone is None:
+    if drones is None:
         error = "This feature is not available yet - check back later!"
     elif len(drones) == 0:
         error = "No drones have been registered!"
@@ -47,10 +47,12 @@ def earnings():
 @bp.route("/drone", methods=["POST", "DELETE", "PUT"])
 def drone():
     if request.method == "POST":
-        print(request.form["display_name"])
+
         display_name = request.form["display_name"]
         drone_size = request.form["drone_size"]
+        serial_number = request.form["serial_number"]
         owner_id = 1
+        is_active = 1
         # session.get("user_id")
         db = get_db()
         error = None
@@ -64,8 +66,8 @@ def drone():
         if error is None:
             try:
                 db.execute(
-                    "INSERT INTO drone (display_name, drone_size, owner_id) VALUES (?, ?, ?)",
-                    (display_name, drone_size, owner_id),
+                    "INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active) VALUES (?, ?, ?, ?, ?)",
+                    (serial_number, display_name, drone_size, owner_id, is_active),
                 )
                 db.commit()
             except db.IntegrityError:
