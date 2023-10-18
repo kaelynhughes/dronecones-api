@@ -14,7 +14,6 @@ bp = Blueprint("employee", __name__, url_prefix="/<int:owner_id>/employee")
 
 @bp.route("/drones", methods=["GET"])
 def drones(owner_id):
-    # body = request.get_json()
     # session.get("user_id")
     db = get_db()
     error = None
@@ -52,9 +51,11 @@ def earnings():
 @bp.route("/drone", methods=["POST", "DELETE", "PUT"])
 def drone(owner_id):
     if request.method == "POST":
-        display_name = request.form["display_name"]
-        drone_size = request.form["drone_size"]
-        serial_number = request.form["serial_number"]
+        body = request.get_json()
+
+        display_name = body["display_name"]
+        drone_size = body["drone_size"]
+        serial_number = body["serial_number"]
 
         is_active = 1
         # session.get("user_id")
@@ -83,7 +84,9 @@ def drone(owner_id):
 
     if request.method == "DELETE":
         db = get_db()
-        serial_number = request.form["serial_number"]
+        body = request.get_json()
+
+        serial_number = body["serial_number"]
 
         if not serial_number:
             error = "Serial Number is required"
