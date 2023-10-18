@@ -45,9 +45,11 @@ def login():
     if error is None:
         session.clear()
         session["user_id"] = user["id"]
+        user_type = user["user_type"]
+        user_id = user["id"]
 
     flash(error)
-    response = {"error": error} if error else {"success": username}
+    response = {"error": error} if error else {"id": user_id, "user-type": user_type}
     return json.dumps(response)
 
 
