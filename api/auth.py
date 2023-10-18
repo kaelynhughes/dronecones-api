@@ -23,60 +23,57 @@ bp = Blueprint("auth", __name__, url_prefix="/auth")
 # localhost:5000/auth/login
 # first line associates the URL /login with the login function
 # the user submitted a login form, so the method will be POST
-@bp.route("/login", methods=["GET, POST"])
+@bp.route("/login", methods=["POST"])
 def login():
-    if request.method == "POST":
-        # request.form is a kind of dict mapping with form keys and values
-        username = request.form["username"]
-        password = request.form["password"]
-        db = get_db()
-        error = None
+    # request.form is a kind of dict mapping with form keys and values
+    body = request.get_json()
 
-        # execute does an SQL query
-        # fetchone returns one row, as opposed to fetchall which fetches the first matching row
-        user = db.execute(
-            "SELECT * FROM user WHERE username = ?", (username,)
-        ).fetchone()
+    username = body["username"]
+    password = body["password"]
+    db = get_db()
+    error = None
 
-        if user is None:
-            error = "Incorrect username."
-        elif not check_password_hash(user["password"], password):
-            error = "Incorrect password."
+    # execute does an SQL query
+    # fetchone returns one row, as opposed to fetchall which fetches the first matching row
+    user = db.execute("SELECT * FROM user WHERE username = ?", (username,)).fetchone()
 
-        if error is None:
-            session.clear()
-            session["user_id"] = user["id"]
-            return redirect(url_for("home"))
+    if user is None:
+        error = "Incorrect username."
+    elif not check_password_hash(user["password"], password):
+        error = "Incorrect password."
 
-        flash(error)
+    if error is None:
+        session.clear()
+        session["user_id"] = user["id"]
 
-        return json.dumps({"type": "SIGNIN"})
+    flash(error)
+    response = {"error": error} if error else {"success": username}
+    return json.dumps(response)
 
 
 # localhost:5000/auth/register
-@bp.route("/register", methods=("GET", "POST"))
+@bp.route("/register", methods=["POST"])
 def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        db = get_db()
-        error = None
+    body = request.get_json()
 
-        if not username:
-            error = "Username is required."
-        elif not password:
-            error = "Password is required."
+    username = body["username"]
+    password = body["password"]
+    db = get_db()
+    error = None
 
-        if error is None:
-            try:
-                db.execute(
-                    "INSERT INTO user (username, password) VALUES (?, ?)",
-                    (username, generate_password_hash(password)),
-                )
-                db.commit()
-            except db.IntegrityError:
-                error = f"User {username} is already registered."
-            else:
-                return json.dumps({"success": username})
-        # if we don't end up being able to register, return the error
-        return json.dumps({"error": error})
+    if not username:
+        error = "Username is required."
+    elif not password:
+        error = "Password is required."
+
+    if error is None:
+        try:
+            db.execute(
+                "INSERT INTO user (username, password, user_type) VALUES (?, ?, ?)",
+                (username, generate_password_hash(password), "customer"),
+            )
+            db.commit()
+        except db.IntegrityError:
+            error = f"User {username} is already registered."
+    response = {"error": error} if error else {"success": username}
+    return json.dumps(response)
