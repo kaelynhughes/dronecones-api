@@ -8,21 +8,22 @@ from flask import (
 
 from api.db import get_db
 
-bp = Blueprint("employee", __name__, url_prefix="/employee")
+bp = Blueprint("employee", __name__, url_prefix="/<int:owner_id>/employee")
+# bp = Blueprint("employee", __name__, url_prefix="/employee")
 
 
 @bp.route("/drones", methods=["GET"])
-def drones():
-    owner_id = 1
+def drones(owner_id):
+    # body = request.get_json()
     # session.get("user_id")
     db = get_db()
     error = None
     query = """
-    SELECT display_name, id, is_active
+    SELECT display_name, serial_number, is_active
     FROM drone
-    WHERE id = ?
+    WHERE owner_id = ?
     """
-    drones = db.execute(query, owner_id).fetchall()
+    drones = db.execute(query, (owner_id,)).fetchall()
 
     if drones is None:
         error = "This feature is not available yet - check back later!"
@@ -32,7 +33,11 @@ def drones():
     if error:
         return json.dumps({"error": error})
     else:
-        return json.dumps({"drones": drones})
+        # Convert the rows to a list of dictionaries
+        drones_dict = [dict(drone) for drone in drones]
+
+        # Return the JSON-serializable data
+        return json.dumps({"drones": drones_dict})
     # return list of all drones and their immediately relevant info
     # response should look like: {'drones': [ {name: Drone2, size: number, id: 10394825, isActive: true } ]}
 
@@ -45,13 +50,12 @@ def earnings():
 
 
 @bp.route("/drone", methods=["POST", "DELETE", "PUT"])
-def drone():
+def drone(owner_id):
     if request.method == "POST":
-
         display_name = request.form["display_name"]
         drone_size = request.form["drone_size"]
         serial_number = request.form["serial_number"]
-        owner_id = request.form["owner_id"]
+
         is_active = 1
         # session.get("user_id")
         db = get_db()
@@ -87,7 +91,7 @@ def drone():
         if error is None:
             try:
                 db.execute(
-                    "Delete From drone where serial_number = ?", #will never fail because of how sql delete works
+                    "Delete From drone where serial_number = ?",  # will never fail because of how sql delete works
                     (serial_number),
                 )
                 db.commit()
