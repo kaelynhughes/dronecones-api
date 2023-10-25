@@ -6,6 +6,7 @@ from flask import (
 )
 
 from api.db import get_db
+from werkzeug.security import generate_password_hash
 
 bp = Blueprint("customer", __name__, url_prefix="/customer")
 
@@ -60,12 +61,36 @@ def checkout():
         # save an order
 
 
-@bp.route("/account", methods=["GET", "PATCH"])
-def account():
+@bp.route("/<user_id>/account", methods=["GET", "PATCH"])
+def account(user_id):
     if request.method == "GET":
         db = get_db()
-        # get all info for the account
+        query = """
+            SELECT id, username, password, user_type
+            FROM user
+            WHERE id = ?
+            """
+        info = db.execute(query, user_id).fetchone()
+        print(info)
+        return json.dumps({info})
 
     if request.method == "PATCH":
         db = get_db()
         # update the relevant info about the user
+        body = request.get_json()
+
+        if "username" in body:
+            query = """
+                UPDATE user
+                SET username = ?
+                WHERE id = ?
+                """
+            db.execute(query, (body["username"], user_id))
+
+        if "password" in body:
+            query = """
+                UPDATE user
+                SET password = ?
+                WHERE id = ?
+                """
+            db.execute(query, (generate_password_hash(body["password"])))
