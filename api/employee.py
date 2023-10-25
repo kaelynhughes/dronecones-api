@@ -8,7 +8,7 @@ from flask import (
 
 from api.db import get_db
 
-bp = Blueprint("employee", __name__, url_prefix="/<int:owner_id>/employee")
+bp = Blueprint("employee", __name__, url_prefix="/employee/<int:owner_id>")
 # bp = Blueprint("employee", __name__, url_prefix="/employee")
 
 
@@ -42,10 +42,61 @@ def drones(owner_id):
 
 
 @bp.route("/earnings", methods=["GET"])
-def earnings():
+def earnings(owner_id):
     db = get_db()
-    # return a single value with total earnings
-    # example: {'earnings': 56600} for $566.00
+    error = None
+    # serial_number = body["display_name"]
+
+    query = """
+    SELECT id
+    FROM drone
+    WHERE owner_id = ?
+    """
+    drones = db.execute(query, (owner_id,)).fetchall()
+    # drones_dict = {}
+    if drones is None:
+        error = "This feature is not available yet - check back later!"
+    elif len(drones) == 0:
+        error = "No drones have been registered!"
+    else:
+        employee_cut = 0
+        for drone in drones:
+            # print(drone["serial_number"])
+            drone_id = drone["id"]
+            query = """
+            SELECT order_id
+            FROM ordered_cone
+            WHERE drone_id = ?
+            """
+            orders = db.execute(query, (drone_id,)).fetchall()
+            if drones is None:
+                error = "This feature is not available yet - check back later!"
+            elif len(orders) == 0:
+                error = "No orders have been submitted!"
+            else:
+                for order in orders:
+                    # print(order["order_id"])
+                    full_order_id = order["order_id"]
+                    query = """
+                    SELECT employee_cut
+                    FROM full_order
+                    WHERE id = ?
+                    """
+                    full_order = db.execute(query, (full_order_id,)).fetchall()
+                    if drones is None:
+                        error = "This feature is not available yet - check back later!"
+                    elif len(full_order) == 0:
+                        error = "full order table has not be set up correclty!"
+                    else:
+                        employee_cut += full_order["employee_cut"]
+
+    if error:
+        return json.dumps({"error": error})
+    else:
+        # Convert the rows to a list of dictionaries
+        return json.dumps({"earnings": employee_cut})
+        # return a single value with total earnings
+        # example: {'earnings': 56600} for $566.00
 
 
 @bp.route("/drone", methods=["POST", "DELETE", "PUT"])
@@ -61,7 +112,6 @@ def drone(owner_id):
         # session.get("user_id")
         db = get_db()
         error = None
-
         if not display_name:
             error = "Display Name is required."
         elif not drone_size:
@@ -70,6 +120,10 @@ def drone(owner_id):
 
         if error is None:
             try:
+                query = """
+                    INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active)
+                    VALUES (?, ?, ?, ?, ?)
+                    """
                 db.execute(
                     "INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active) VALUES (?, ?, ?, ?, ?)",
                     (serial_number, display_name, drone_size, owner_id, is_active),
@@ -84,6 +138,7 @@ def drone(owner_id):
 
     if request.method == "DELETE":
         db = get_db()
+        error = None
         body = request.get_json()
 
         serial_number = body["serial_number"]
@@ -93,6 +148,10 @@ def drone(owner_id):
 
         if error is None:
             try:
+                query = """
+                    DELETE FROM drone
+                    WHERE serial_number = ?
+                    """
                 db.execute(
                     "Delete From drone where serial_number = ?",  # will never fail because of how sql delete works
                     (serial_number),
@@ -120,6 +179,11 @@ def drone(owner_id):
             error = "Active State is required."
 
         try:
+            query = """
+                UPDATE drone
+                SET display_name = ?, is_active = ? 
+                WHERE serial_number = ?
+                """
             db.execute(
                 "UPDATE drone SET display_name = ?, is_active = ? WHERE serial_number = ?",
                 (display_name, is_active, serial_number),
