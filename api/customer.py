@@ -51,7 +51,7 @@ def menu():
 
 
 @bp.route("/<user_id>/checkout", methods=["GET", "POST"])
-def checkout():
+def checkout(user_id):
     if request.method == "GET":
         db = get_db()
         # get most recent order
@@ -65,30 +65,78 @@ def checkout():
         profit = body["profit"]
         order_time = body["order_time"]
 
-        error = None
-        if not display_name:
-            error = "Display Name is required."
-        elif not drone_size:
-            error = "Drone Size is required."
-        # register a drone
+        
+        products = body["products"]
+        cone = products["cone"]
+        scoop_1 = products["scoop_1"]
+        scoop_2 = products["scoop_2"]
+        scoop_3 = products["scoop_3"]
+        topping_1 = products["topping_1"]
+        topping_2 = products["topping_2"]
+        topping_3 = products["topping_3"]
 
-        if error is None:
-            try:
+        error = None
+        if not total_price:
+            error = "total_price is required."
+        elif not employee_cut:
+            error = "employee_cut is required."
+        elif not profit:
+            error = "profit is required."
+        elif not order_time:
+            error = "order_time is required." # may be a back end thing
+        elif not cone:
+            error = "cone is required."
+        elif not products:
+            error = "products dictionary is required."
+        elif not scoop_1:
+            error = "scoop_1 is required."
+
+        if not error:
+            for product, product_id in products.items():
+                if product_id:
+                    query = """
+                    UPDATE product
+                    SET stock - 1
+                    WHERE id = ?
+                    """
+                    db.execute(query, (product_id,))
+
                 query = """
-                    INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active)
+                    INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
                     VALUES (?, ?, ?, ?, ?)
                     """
-                db.execute(
-                    "INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active) VALUES (?, ?, ?, ?, ?)",
-                    (serial_number, display_name, drone_size, owner_id, is_active),
-                )
-                db.commit()
-            except db.IntegrityError:
-                error = f"Drone {display_name} is already registered."
-            else:
-                return json.dumps({"success": display_name})
-        # if we don't end up being able to register, return the error
+                full_order_id = db.execute(query, (total_price, employee_cut, profit, user_id, order_time)) # not sure if id but need id returned somehow
+                
+                query = """
+                    INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, profit, topping_1, topping_2, topping_3, order_id, drone_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                
+                #will need to find availible drone.
+
+
         return json.dumps({"error": error})
+        # will need to remove products from inventory as well
+
+        # register a order
+
+        # if error is None:
+        #     try:
+        #         query = """
+        #             INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active)
+        #             VALUES (?, ?, ?, ?, ?)
+        #             """
+        #         db.execute(
+        #             "INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active) VALUES (?, ?, ?, ?, ?)",
+        #             (serial_number, display_name, drone_size, owner_id, is_active),
+        #         )
+        #         db.commit()
+        #     except db.IntegrityError:
+        #         error = f"Drone {display_name} is already registered."
+        #     else:
+        #         return json.dumps({"success": display_name})
+        # # if we don't end up being able to register, return the error
+        # return json.dumps({"error": error})
         # save an order
 
 

@@ -60,7 +60,7 @@ def earnings(owner_id):
         error = "No drones have been registered!"
     else:
         employee_cut = 0
-        for drone in drones:
+        for drone in drones: #change to have front in pass in a list of drones instead of looping through yourself.
             # print(drone["serial_number"])
             drone_id = drone["id"]
             query = """
