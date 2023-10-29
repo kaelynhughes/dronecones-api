@@ -65,7 +65,6 @@ def checkout(user_id):
         profit = body["profit"]
         order_time = body["order_time"]
 
-        
         products = body["products"]
         cone = products["cone"]
         scoop_1 = products["scoop_1"]
@@ -83,37 +82,45 @@ def checkout(user_id):
         elif not profit:
             error = "profit is required."
         elif not order_time:
-            error = "order_time is required." # may be a back end thing
+            error = "order_time is required."  # may be a back end thing
         elif not cone:
             error = "cone is required."
         elif not products:
             error = "products dictionary is required."
         elif not scoop_1:
             error = "scoop_1 is required."
-
+        print("here 1")
         if not error:
             for product, product_id in products.items():
                 if product_id:
                     query = """
                     UPDATE product
-                    SET stock - 1
+                    SET stock = stock - 1
                     WHERE id = ?
                     """
                     db.execute(query, (product_id,))
 
-                query = """
-                    INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
-                    VALUES (?, ?, ?, ?, ?)
-                    """
-                full_order_id = db.execute(query, (total_price, employee_cut, profit, user_id, order_time)) # not sure if id but need id returned somehow
-                
-                query = """
-                    INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, profit, topping_1, topping_2, topping_3, order_id, drone_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """
-                
-                #will need to find availible drone.
+            query = """
+                INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
+                VALUES (?, ?, ?, ?, ?)
+                """
+            full_order_id = db.execute(
+                query, (total_price, employee_cut, profit, user_id, order_time)
+            )  # not sure if id but need id returned somehow
+            print(full_order_id[id])
+            query = """
+                SELECT id
+                FROME drone
+                WHERE is_active = 1
+                LIMIT 1;
+                """
+            drone_id = db.execute(query)
+            query = """
+                INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, profit, topping_1, topping_2, topping_3, order_id, drone_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """
 
+            # will need to find availible drone.
 
         return json.dumps({"error": error})
         # will need to remove products from inventory as well
