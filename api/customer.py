@@ -54,6 +54,22 @@ def menu():
 def checkout(user_id):
     if request.method == "GET":
         db = get_db()
+        query = """
+                SELECT id
+                FROM full_order
+                WHERE customer_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """
+        order_id = db.execute(query, (user_id,)).fetchone()[0]
+        query = """
+                SELECT *
+                FROM ordered_cone
+                WHERE order_id = ?
+                """
+        ordered_cone = db.execute(query, (order_id,)).fetchall()
+
+        return json.dumps({"ordered cone":ordered_cone})
         # get most recent order
 
     if request.method == "POST":
@@ -107,20 +123,22 @@ def checkout(user_id):
             full_order_id = db.execute(
                 query, (total_price, employee_cut, profit, user_id, order_time)
             )  # not sure if id but need id returned somehow
-            print(full_order_id[id])
+            #print(full_order_id.lastrowid)
             query = """
                 SELECT id
-                FROME drone
+                FROM drone
                 WHERE is_active = 1
-                LIMIT 1;
+                LIMIT 1
                 """
-            drone_id = db.execute(query)
+            drone_id = db.execute(query).fetchone()
             query = """
-                INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, profit, topping_1, topping_2, topping_3, order_id, drone_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
 
-            # will need to find availible drone.
+            db.execute(query, (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, full_order_id.lastrowid, drone_id[0]))
+
+            return json.dumps("success") #will want to return more here later
 
         return json.dumps({"error": error})
         # will need to remove products from inventory as well
