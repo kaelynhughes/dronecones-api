@@ -8,12 +8,12 @@
 
 `flask --app api init-db`
 
-
 ## User flask shell:
 
 `flask --app api shell`
 
 ### would print all drones
+
 ```
 import os
 import sqlite3
@@ -36,6 +36,19 @@ for row in results:
     display_name, drone_size, owner_id = row
     print(display_name, drone_size, owner_id)
 
+# For checking products
+cursor.execute('SELECT id, display_name, stock, product_type FROM product')
+
+results = cursor.fetchall()
+
+for row in results:
+    id, display_name, stock, product_type = row
+    print(id, display_name, stock, product_type)
+
 # Close the database connection
 conn.close()
+
+
+
+
 ```
