@@ -45,6 +45,17 @@ for row in results:
     id, display_name, stock, product_type = row
     print(id, display_name, stock, product_type)
 
+# Execute an SQL query
+cursor.execute('SELECT id, customer_id FROM full_order')
+
+# Fetch the results
+results = cursor.fetchall()
+
+# Display the data
+for row in results:
+    id, customer_id = row
+    print(id, customer_id)
+
 # Close the database connection
 conn.close()
 

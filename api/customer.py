@@ -69,7 +69,7 @@ def checkout(user_id):
                 """
         ordered_cone = db.execute(query, (order_id,)).fetchall()
 
-        return json.dumps({"ordered cone":ordered_cone})
+        return json.dumps({"ordered cone": ordered_cone})
         # get most recent order
 
     if request.method == "POST":
@@ -120,10 +120,20 @@ def checkout(user_id):
                 INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
                 VALUES (?, ?, ?, ?, ?)
                 """
-            full_order_id = db.execute(
+            db.execute(
                 query, (total_price, employee_cut, profit, user_id, order_time)
             )  # not sure if id but need id returned somehow
-            #print(full_order_id.lastrowid)
+            # this is not working!!!!!! ---------------------------
+            query = """ 
+                SELECT id
+                FROM full_order
+                WHERE customer_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            full_order_id = db.execute(query, (user_id,)).fetchone()
+
+            print(full_order_id)
             query = """
                 SELECT id
                 FROM drone
@@ -135,10 +145,25 @@ def checkout(user_id):
                 INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
+            print(drone_id[0])
+            order = db.execute(
+                query,
+                (
+                    cone,
+                    scoop_1,
+                    scoop_2,
+                    scoop_3,
+                    topping_1,
+                    topping_2,
+                    topping_3,
+                    full_order_id,
+                    drone_id[0],
+                ),
+            )
 
-            db.execute(query, (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, full_order_id.lastrowid, drone_id[0]))
-
-            return json.dumps("success") #will want to return more here later
+            return json.dumps(
+                {"success": order.fetchall()}
+            )  # will want to return more here later
 
         return json.dumps({"error": error})
         # will need to remove products from inventory as well
