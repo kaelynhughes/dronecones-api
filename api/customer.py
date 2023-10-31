@@ -62,14 +62,16 @@ def checkout(user_id):
                 LIMIT 1
                 """
         order_id = db.execute(query, (user_id,)).fetchone()[0]
+
         query = """
                 SELECT *
                 FROM ordered_cone
                 WHERE order_id = ?
                 """
         ordered_cone = db.execute(query, (order_id,)).fetchall()
+        ordered_cone_list = [dict(row) for row in ordered_cone]
 
-        return json.dumps({"ordered cone": ordered_cone})
+        return json.dumps({"ordered cone": ordered_cone_list})
         # get most recent order
 
     if request.method == "POST":
@@ -105,7 +107,7 @@ def checkout(user_id):
             error = "products dictionary is required."
         elif not scoop_1:
             error = "scoop_1 is required."
-        print("here 1")
+
         if not error:
             for product, product_id in products.items():
                 if product_id:
@@ -115,25 +117,17 @@ def checkout(user_id):
                     WHERE id = ?
                     """
                     db.execute(query, (product_id,))
+                    print("removed stock " + str(product_id)) # maybe return the stocks in json?
 
             query = """
                 INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
                 VALUES (?, ?, ?, ?, ?)
                 """
-            db.execute(
-                query, (total_price, employee_cut, profit, user_id, order_time)
-            )  # not sure if id but need id returned somehow
-            # this is not working!!!!!! ---------------------------
-            query = """ 
-                SELECT id
-                FROM full_order
-                WHERE customer_id = ?
-                ORDER BY id DESC
-                LIMIT 1
-                """
-            full_order_id = db.execute(query, (user_id,)).fetchone()
+            full_order_id = db.execute(
+                query, (total_price, employee_cut, profit, user_id, order_time,)
+            ).lastrowid
 
-            print(full_order_id)
+
             query = """
                 SELECT id
                 FROM drone
@@ -145,7 +139,7 @@ def checkout(user_id):
                 INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
-            print(drone_id[0])
+
             order = db.execute(
                 query,
                 (
@@ -160,34 +154,13 @@ def checkout(user_id):
                     drone_id[0],
                 ),
             )
+            db.commit()
 
             return json.dumps(
                 {"success": order.fetchall()}
             )  # will want to return more here later
 
         return json.dumps({"error": error})
-        # will need to remove products from inventory as well
-
-        # register a order
-
-        # if error is None:
-        #     try:
-        #         query = """
-        #             INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active)
-        #             VALUES (?, ?, ?, ?, ?)
-        #             """
-        #         db.execute(
-        #             "INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active) VALUES (?, ?, ?, ?, ?)",
-        #             (serial_number, display_name, drone_size, owner_id, is_active),
-        #         )
-        #         db.commit()
-        #     except db.IntegrityError:
-        #         error = f"Drone {display_name} is already registered."
-        #     else:
-        #         return json.dumps({"success": display_name})
-        # # if we don't end up being able to register, return the error
-        # return json.dumps({"error": error})
-        # save an order
 
 
 @bp.route("/<user_id>/account", methods=["GET", "PATCH"])

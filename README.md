@@ -12,6 +12,11 @@
 
 `flask --app api shell`
 
+## Populate Database
+
+`py data.py` 
+I used py because I have flask installed on py but might need to use .venv and then run the file
+
 ### would print all drones
 
 ```
