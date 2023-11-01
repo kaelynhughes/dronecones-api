@@ -163,6 +163,22 @@ def checkout(user_id):
         return json.dumps({"error": error})
 
 
+@bp.route("/<user_id>/history", methods=["GET"])
+def history(user_id):
+    if request.method == "GET":
+        db = get_db()
+        query = """
+                SELECT *
+                FROM full_order
+                WHERE customer_id = ?
+                """
+        order_id = db.execute(query, (user_id,)).fetchall()
+        order_id = [dict(row) for row in order_id]
+
+        return json.dumps({"full orders": order_id})
+        
+
+
 @bp.route("/<user_id>/account", methods=["GET", "PATCH"])
 def account(user_id):
     if request.method == "GET":
