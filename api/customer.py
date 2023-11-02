@@ -60,8 +60,8 @@ def checkout():
         # save an order
 
 
-@bp.route("/account", methods=["GET", "PATCH"])
-def account():
+@bp.route("/<user_id>/account", methods=["GET", "PATCH"])
+def account(user_id):
     if request.method == "GET":
         db = get_db()
         # get all info for the account

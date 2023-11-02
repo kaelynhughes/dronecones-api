@@ -22,7 +22,7 @@ def drones():
     FROM drone
     WHERE id = ?
     """
-    drones = db.execute(query, owner_id).fetchall()
+    drones = db.execute(query, (owner_id,)).fetchall()
 
     if drones is None:
         error = "This feature is not available yet - check back later!"
@@ -47,7 +47,6 @@ def earnings():
 @bp.route("/drone", methods=["POST", "DELETE", "PUT"])
 def drone():
     if request.method == "POST":
-
         display_name = request.form["display_name"]
         drone_size = request.form["drone_size"]
         serial_number = request.form["serial_number"]
@@ -87,7 +86,7 @@ def drone():
         if error is None:
             try:
                 db.execute(
-                    "Delete From drone where serial_number = ?", #will never fail because of how sql delete works
+                    "Delete From drone where serial_number = ?",  # will never fail because of how sql delete works
                     (serial_number),
                 )
                 db.commit()
