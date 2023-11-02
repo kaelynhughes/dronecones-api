@@ -19,7 +19,7 @@ def orders():
     # this will be used in account management as well
 
 
-@bp.route("/product", methods=["GET"])
+@bp.route("/product", methods=["GET", "PUT", "POST"])
 def accounting():
     if request.method == "GET":
         db = get_db()
@@ -27,11 +27,37 @@ def accounting():
 
     if request.method == "PUT":
         db = get_db()
-        # update record on one specific product
+        # update record on one specific product - can be used for restock
 
     if request.method == "POST":
+        data = request.get_json()
+        displayName = data["displayName"]
+        pricePerUnit = data["pricePerUnit"]
+        productType = data["productType"]
+        stock = data["stock"] if "stock" in data else 0
         db = get_db()
-        # add a new product
+        error = None
+
+        if not displayName:
+            error = "Product name is required."
+        elif not pricePerUnit:
+            error = "Price per unit is required."
+        elif not productType:
+            error = "Product type is required."
+
+        if error is None:
+            try:
+                query = """
+                    INSERT INTO product (display_name, stock, price_per_unit, product_type)
+                    VALUES (?, ?, ?, ?)
+                    """
+                db.execute(query, (displayName, stock, pricePerUnit, productType))
+                db.commit()
+            except:
+                error = "Sorry, something went wrong saving the product."
+            else:
+                return json.dumps({"success": f"Product successfully added!"})
+        return json.dumps({"error": error})
 
 
 @bp.route("/user", methods=["GET", "PUT"])
