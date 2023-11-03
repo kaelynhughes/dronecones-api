@@ -61,17 +61,23 @@ def checkout(user_id):
                 ORDER BY id DESC
                 LIMIT 1
                 """
-        order_id = db.execute(query, (user_id,)).fetchone()[0]
+        order_id = db.execute(query, (user_id,)).fetchone()
+        error = None
+        if not order_id:
+            error = "No orders"
 
-        query = """
-                SELECT *
-                FROM ordered_cone
-                WHERE order_id = ?
-                """
-        ordered_cone = db.execute(query, (order_id,)).fetchall()
-        ordered_cone_list = [dict(row) for row in ordered_cone]
+        if not error:
+            query = """
+                    SELECT *
+                    FROM ordered_cone
+                    WHERE order_id = ?
+                    """
+            ordered_cone = db.execute(query, (order_id[0],)).fetchall()
+            ordered_cone_list = [dict(row) for row in ordered_cone]
 
-        return json.dumps({"ordered cone": ordered_cone_list})
+            return json.dumps({"ordered cone": ordered_cone_list})
+        else:
+            return json.dumps({"error": error})
         # get most recent order
 
     if request.method == "POST":
@@ -117,16 +123,24 @@ def checkout(user_id):
                     WHERE id = ?
                     """
                     db.execute(query, (product_id,))
-                    print("removed stock " + str(product_id)) # maybe return the stocks in json?
+                    print(
+                        "removed stock " + str(product_id)
+                    )  # maybe return the stocks in json?
 
             query = """
                 INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
                 VALUES (?, ?, ?, ?, ?)
                 """
             full_order_id = db.execute(
-                query, (total_price, employee_cut, profit, user_id, order_time,)
+                query,
+                (
+                    total_price,
+                    employee_cut,
+                    profit,
+                    user_id,
+                    order_time,
+                ),
             ).lastrowid
-
 
             query = """
                 SELECT id
@@ -168,15 +182,26 @@ def history(user_id):
     if request.method == "GET":
         db = get_db()
         query = """
-                SELECT *
+                SELECT id, total_price, order_time
                 FROM full_order
                 WHERE customer_id = ?
+                ORDER BY id DESC
+                LIMIT 10
                 """
-        order_id = db.execute(query, (user_id,)).fetchall()
-        order_id = [dict(row) for row in order_id]
+        orders = db.execute(query, (user_id,)).fetchall()
+        orders_dict = [dict(row) for row in orders]
+        for order in orders_dict:
+            print(order)
+            query = """
+                    SELECT *
+                    FROM ordered_cone
+                    WHERE order_id = ?
+                    """
+            ordered_cone = db.execute(query, (order["id"],)).fetchall()
+            ordered_cone_dict = [dict(row) for row in ordered_cone]
+            order["ordered_cone_dict"] = ordered_cone_dict
 
-        return json.dumps({"full orders": order_id})
-        
+        return json.dumps({"full orders": orders_dict})
 
 
 @bp.route("/<user_id>/account", methods=["GET", "PATCH"])
