@@ -2,7 +2,10 @@
 
 ## To start the server:
 
-`flask --app api run --debug`
+```
+. .venv/bin/activate
+flask --app api run --debug
+```
 
 ## To start running the database:
 
@@ -14,7 +17,7 @@
 
 ## Populate Database
 
-`py data.py` 
+`py data.py`
 I used py because I have flask installed on py but might need to use .venv and then run the file
 
 ### would print all drones
