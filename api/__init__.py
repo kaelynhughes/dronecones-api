@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from . import db, auth, customer, manager, employee
+from flask_cors import CORS
 
 
 # the application factory! lets us start the app running
@@ -9,6 +10,7 @@ def create_app(test_config=None):
     # __name__ represents the current module
     # instance_relative_config tells the app whether to look for config files relative to the instance folder
     app = Flask(__name__, instance_relative_config=True)
+    CORS(app)
     app.config.from_mapping(
         SECRET_KEY="dev",
         DATABASE=os.path.join(app.instance_path, "api.sqlite"),
