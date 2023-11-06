@@ -1,14 +1,8 @@
 import json
-
-from flask import (
-    Blueprint,
-    request,
-)
-
+from flask import Blueprint, request, jsonify
 from api.db import get_db
 
 bp = Blueprint("manager", __name__, url_prefix="/manager")
-
 
 @bp.route("/orders", methods=["GET"])
 def orders():
@@ -17,194 +11,129 @@ def orders():
     query = """
         SELECT *
         FROM ordered_cone
-        """
+    """
     orders = db.execute(query).fetchall()
-    print(orders)
-    # get all orders, or a specific number
-    # if we want to get only a few at a time, we may need to have this be a bit more involved
-    # so that we don't end up returning the same few records over and over
-    # this will be used in account management as well
 
-    if orders is None:
-        error = "Not implemented"
-    elif len(orders == 0):
+    if not orders:
+        error = "No orders found"
+    elif len(orders) == 0:
         error = "Empty table"
 
     if error:
-        return json.dumps({"error": error})
+        return jsonify({"error": error})
     else:
-        return json.dumps({"orders": orders})
+        return jsonify({"orders": [dict(row) for row in orders]})
 
-
-@bp.route("/product", methods=["GET", "PUT", "POST"])
-def accounting():
+@bp.route("/product/<product_id>", methods=["GET", "PUT", "POST"])
+def accounting(product_id):
+    db = get_db()
+    
     if request.method == "GET":
-        db = get_db()
-        error = None
-        # get info on one specific product
         query = """
             SELECT display_name, stock, price_per_unit
             FROM product
-            WHERE id = {search}
-            """
-        # Idea is each item from table will be grabbed incrementally
-        item = db.execute(query).fetchone()
-        print(item)
-
-        if item is None:
-            error = "Not implemented"
-        elif len(item == 0):
-            error = "Empty table"
-
-        if error:
-            return json.dumps({"error": error})
+            WHERE id = ?
+        """
+        item = db.execute(query, (product_id,)).fetchone()
+        
+        if not item:
+            return jsonify({"error": "Product not found"})
         else:
-            return json.dumps({"item": item})
+            return jsonify({"item": dict(item)})
 
     if request.method == "PUT":
-        # grab data
         data = request.get_json()
-        displayName = data["display_name"]
-        stock = data["stock"]
-        pricePerUnit = data["price_per_unit"]
-        productType = data["product_type"]
+        if not data:
+            return jsonify({"error": "No JSON data provided"})
 
-        # initiating variable
-        db = get_db()
-        error = None
+        # Validate and retrieve data from the JSON request
+        display_name = data.get("display_name")
+        stock = data.get("stock")
+        price_per_unit = data.get("price_per_unit")
+        product_type = data.get("product_type")
 
-        # check data entries
-        if not displayName:
-            error = "Display name missing."
-        elif not stock:
-            error = "Stock missing."
-        elif not pricePerUnit:
-            error = "Price per unit missing."
-        elif not productType:
-            error = "Product type missing."
+        if not display_name or not price_per_unit or not product_type:
+            return jsonify({"error": "Missing required data fields"})
 
-        # continue if no errors
-        if error is None:
-            try:
-                query = """
-                    REPLACE INTO product (display_name, stock, price_per_unit, product_type)
-                    VALUES (?, ?, ?, ?)
-                    """
-                db.execute(query, (displayName, stock, pricePerUnit, productType))
-                db.commit()
-            except:
-                error = "Error saving values"
-            else:
-                return json.dumps({"success": f"{displayName} has been updated."})
-        else:
-            return json.dumps({"error": error})
-        # update record on one specific product
+        try:
+            query = """
+                REPLACE INTO product (display_name, stock, price_per_unit, product_type)
+                VALUES (?, ?, ?, ?)
+            """
+            db.execute(query, (display_name, stock, price_per_unit, product_type))
+            db.commit()
+            return jsonify({"success": f"{display_name} has been updated."})
+        except Exception as e:
+            return jsonify({"error": f"Error saving product: {str(e)}"})
 
     if request.method == "POST":
-        # grab data
         data = request.get_json()
-        displayName = data["display_name"]
-        stock = data["stock"] if "stock" in data else 0
-        pricePerUnit = data["price_per_unit"]
-        productType = data["product_type"]
+        if not data:
+            return jsonify({"error": "No JSON data provided"})
 
-        # initiating variable
-        db = get_db()
-        error = None
+        display_name = data.get("display_name")
+        stock = data.get("stock") if "stock" in data else 0
+        price_per_unit = data.get("price_per_unit")
+        product_type = data.get("product_type")
 
-        # check data entries
-        if not displayName:
-            error = "Product name is required."
-        elif not pricePerUnit:
-            error = "Price per unti is required."
-        elif not productType:
-            error = "Product type is required."
+        if not display_name or not price_per_unit or not product_type:
+            return jsonify({"error": "Missing required data fields"})
 
-        # continue if no errors
-        if error is None:
-            try:
-                query = """
-                    INSERT INTO product (display_name, stock, price_per_unit, product_type)
-                    VALUES (?, ?, ?, ?)
-                    """
-                db.execute(query, (displayName, stock, pricePerUnit, productType))
-                db.commit()
-            except:
-                error = "Error saving product."
-            else:
-                return json.dumps({"success": f"{productType} added successfully."})
-        else:
-            return json.dumps({"error": error})
+        try:
+            query = """
+                INSERT INTO product (display_name, stock, price_per_unit, product_type)
+                VALUES (?, ?, ?, ?)
+            """
+            db.execute(query, (display_name, stock, price_per_unit, product_type))
+            db.commit()
+            return jsonify({"success": f"{product_type} added successfully."})
+        except Exception as e:
+            return jsonify({"error": f"Error saving product: {str(e)}"})
 
+@bp.route("/user/<user_id>", methods=["GET", "PUT"])
+def user(user_id):
+    db = get_db()
 
-@bp.route("/user", methods=["GET", "PUT"])
-def user():
     if request.method == "GET":
-        # grab data
-        data = request.get_json
-        search = data["search"]
-
-        db = get_db()
-        error = None
+        search = request.args.get("search")
 
         if not search:
-            return json.dumps({"error": "Missing search term."})
+            return jsonify({"error": "Missing search term"})
 
-        # get more info about a specific user
         query = """
             SELECT *
             FROM user
-            WHERE username = ?  
-            """
-        # The idea is to find a specific user, right? Hence the {search term}
-        user = db.execute(query, (search)).fetchall()
-        print(user)
+            WHERE username = ?
+        """
+        user = db.execute(query, (search,)).fetchall()
 
-        if user is None:
-            error = "Not implemented"
-        elif len(user) == 0:
-            error = "Empty table"
-
-        if error:
-            return json.dumps({"error": error})
+        if not user:
+            return jsonify({"error": "User not found"})
         else:
-            return json.dumps({"user": user})
+            user_list = [dict(row) for row in user]
+            return jsonify({"user": user_list})
 
     if request.method == "PUT":
-        # grab data
         data = request.get_json()
-        username = data["username"]
-        password = data["password"]
-        userType = data["user_type"]
-        isActive = data["is_active"]
 
-        # initiating variable
-        db = get_db()
-        error = None
+        if not data:
+            return jsonify({"error": "No JSON data provided"})
 
-        # check data entries
-        if not username:
-            error = "Username missing."
-        elif not password:
-            error = "Password missing."
-        elif not userType:
-            error = "User type missing."
-        elif not isActive:
-            error = "Active value missing."
+        username = data.get("username")
+        password = data.get("password")
+        user_type = data.get("user_type")
+        is_active = data.get("is_active")
 
-        # continue if no errors
-        if error is None:
-            try:
-                query = """
-                    REPLACE INTO user (username, password, user_type, is_active)
-                    VALUES (?, ?, ?, ?)
-                    """
-                db.execute(query, (username, password, userType, isActive))
-                db.commit()
-            except:
-                error = "Error saving value"
-            else:
-                return json.dumps({"success": f"Active value set to {isActive}"})
-        else:
-            return json.dumps({"error": error})
-        # update a user's info - this will be used to ban them
+        if not username or not password or not user_type or is_active is None:
+            return jsonify({"error": "Missing required data fields"})
+
+        try:
+            query = """
+                REPLACE INTO user (username, password, user_type, is_active)
+                VALUES (?, ?, ?, ?)
+            """
+            db.execute(query, (username, password, user_type, is_active))
+            db.commit()
+            return jsonify({"success": f"Active value set to {is_active}"})
+        except Exception as e:
+            return jsonify({"error": f"Error saving user: {str(e)}"})
