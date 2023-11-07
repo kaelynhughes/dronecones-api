@@ -193,7 +193,7 @@ def history(user_id):
         for order in orders_dict:
             print(order)
             query = """
-                    SELECT *
+                    SELECT id, cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3
                     FROM ordered_cone
                     WHERE order_id = ?
                     """
