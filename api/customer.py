@@ -116,8 +116,8 @@ def checkout(user_id):
 
         if not error:
             for product, product_id in products.items():
-                if product_id:
-                    query = """
+                if product_id: # might want to add later to check to see if stock can handle
+                    query = """ 
                     UPDATE product
                     SET stock = stock - 1
                     WHERE id = ?
@@ -149,6 +149,10 @@ def checkout(user_id):
                 LIMIT 1
                 """
             drone_id = db.execute(query).fetchone()
+            if not drone_id:
+                error = "No drones are active"
+                return json.dumps({"error": error}) #hot fix make look better later
+            
             query = """
                 INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -171,7 +175,7 @@ def checkout(user_id):
             db.commit()
 
             return json.dumps(
-                {"success": order.fetchall()}
+                "success"
             )  # will want to return more here later
 
         return json.dumps({"error": error})
@@ -193,7 +197,7 @@ def history(user_id):
         for order in orders_dict:
             print(order)
             query = """
-                    SELECT *
+                    SELECT id, cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3
                     FROM ordered_cone
                     WHERE order_id = ?
                     """

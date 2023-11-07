@@ -86,7 +86,7 @@ def earnings(owner_id):
                     FROM full_order
                     WHERE id = ?
                     """
-                    full_order = db.execute(query, (full_order_id,)).fetchall()
+                    full_order = db.execute(query, (full_order_id,)).fetchone()
                     if drones is None:
                         error = "This feature is not available yet - check back later!"
                     elif len(full_order) == 0:
@@ -129,7 +129,7 @@ def drone(owner_id):
                     VALUES (?, ?, ?, ?, ?)
                     """
                 db.execute(
-                    "INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active) VALUES (?, ?, ?, ?, ?)",
+                    query,
                     (serial_number, display_name, drone_size, owner_id, is_active),
                 )
                 db.commit()
@@ -150,6 +150,15 @@ def drone(owner_id):
         if not serial_number:
             error = "Serial Number is required"
 
+        query = """
+            SELECT *
+            FROM drone 
+            WHERE serial_number = ?
+            """
+        existing_drone = db.execute(query, (serial_number,)).fetchone()
+        if not existing_drone:
+            error = f"Couldn't find drone with serial {serial_number} because it does not exist."
+        print(existing_drone)
         if error is None:
             try:
                 query = """
@@ -157,12 +166,12 @@ def drone(owner_id):
                     WHERE serial_number = ?
                     """
                 db.execute(
-                    "Delete From drone where serial_number = ?",  # will never fail because of how sql delete works
-                    (serial_number),
+                    query,   #will never fail becuase of how sql works
+                    (serial_number,)
                 )
                 db.commit()
             except db.IntegrityError:
-                error = f"Couldn't delete drone with serial {serial_number} because it does not exist."
+                error = f"An error occurred while deleting the drone with serial {serial_number}"
             else:
                 return json.dumps({"deleted drone with serial ": serial_number})
         return json.dumps({"error": error})
@@ -171,9 +180,11 @@ def drone(owner_id):
 
     if request.method == "PUT":
         db = get_db()
-        serial_number = request.form["serial_number"]
-        display_name = request.form["display_name"]
-        is_active = request.form["is_active"]
+        body = request.get_json()
+        
+        serial_number = body["serial_number"]
+        display_name = body["display_name"]
+        is_active = body["is_active"]
 
         if not serial_number:
             error = "Serial Number is required"
@@ -181,21 +192,29 @@ def drone(owner_id):
             error = "Display Name is required."
         elif not is_active:
             error = "Active State is required."
-
-        try:
-            query = """
-                UPDATE drone
-                SET display_name = ?, is_active = ? 
-                WHERE serial_number = ?
-                """
-            db.execute(
-                "UPDATE drone SET display_name = ?, is_active = ? WHERE serial_number = ?",
-                (display_name, is_active, serial_number),
-            )
-            db.commit()
-        except db.IntegrityError:
+        
+        query = """
+            SELECT *
+            FROM drone 
+            WHERE serial_number = ?
+            """
+        existing_drone = db.execute(query, (serial_number,)).fetchone()
+        if not existing_drone:
             error = f"Couldn't find drone with serial {serial_number} because it does not exist."
         else:
-            return json.dumps({"Updated drone with serial ": serial_number})
+            try:
+                query = """
+                    UPDATE drone
+                    SET display_name = ?, is_active = ? 
+                    WHERE serial_number = ?
+                    """
+                db.execute(
+                    query,
+                    (display_name, is_active, serial_number),
+                )
+                db.commit()
+                return json.dumps({"Updated drone with serial ": serial_number})
+            except:
+                error = f"An error occurred while updating the drone with serial {serial_number}."
         return json.dumps({"error": error})
         # update a drone's record - change info, deactivate
