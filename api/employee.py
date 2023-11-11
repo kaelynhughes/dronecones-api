@@ -18,7 +18,7 @@ def drones(owner_id):
     db = get_db()
     error = None
     query = """
-    SELECT display_name, serial_number, is_active
+    SELECT id, display_name, serial_number, is_active, drone_size, created
     FROM drone
     WHERE owner_id = ?
     """
@@ -28,12 +28,50 @@ def drones(owner_id):
         error = "This feature is not available yet - check back later!"
     elif len(drones) == 0:
         error = "No drones have been registered!"
+    else:
+        drones_dict = [dict(drone) for drone in drones]
+        for drone in drones_dict:  # change to have front in pass in a list of drones instead of looping through yourself.
+            drone["created"] = str(drone["created"])
+            num_orders = 0
+            employee_cut = 0
+            drone_id = drone["id"]
+            query = """
+            SELECT order_id
+            FROM ordered_cone
+            WHERE drone_id = ?
+            """
+            orders = db.execute(query, (drone_id,)).fetchall()
+            if drones is None:
+                error = "This feature is not available yet - check back later!"
+            elif len(orders) == 0:
+                drone['earnings'] = 0
+                drone['num_orders'] = 0
+            else:
+                for order in orders:
+                    # print(order["order_id"])
+                    full_order_id = order["order_id"]
+                    query = """
+                    SELECT employee_cut
+                    FROM full_order
+                    WHERE id = ?
+                    """
+                    full_order = db.execute(query, (full_order_id,)).fetchone()
+                    if drones is None:
+                        error = "This feature is not available yet - check back later!"
+                    elif len(full_order) == 0:
+                        error = "full order table has not be set up correclty!"
+                    else:
+                        employee_cut += full_order["employee_cut"]
+                        num_orders += 1
+
+            drone['earnings'] = employee_cut
+            drone['num_orders'] = num_orders
 
     if error:
         return json.dumps({"error": error})
     else:
         # Convert the rows to a list of dictionaries
-        drones_dict = [dict(drone) for drone in drones]
+        
 
         # Return the JSON-serializable data
         return json.dumps({"drones": drones_dict})
@@ -60,11 +98,7 @@ def earnings(owner_id):
         error = "No drones have been registered!"
     else:
         employee_cut = 0
-        for (
-            drone
-        ) in (
-            drones
-        ):  # change to have front in pass in a list of drones instead of looping through yourself.
+        for drone in drones:  # change to have front in pass in a list of drones instead of looping through yourself.
             # print(drone["serial_number"])
             drone_id = drone["id"]
             query = """
@@ -79,7 +113,6 @@ def earnings(owner_id):
                 error = "No orders have been submitted!"
             else:
                 for order in orders:
-                    # print(order["order_id"])
                     full_order_id = order["order_id"]
                     query = """
                     SELECT employee_cut
@@ -113,13 +146,17 @@ def drone(owner_id):
         serial_number = body["serial_number"]
 
         is_active = 1
-        # session.get("user_id")
+        
         db = get_db()
         error = None
-        if not display_name:
-            error = "Display Name is required."
-        elif not drone_size:
+        
+        if not serial_number or type(serial_number) is not str:
+            error = "Serial Number is required and must be a string."
+        elif not display_name or type(display_name) is not str:
+            error = "Display Name is required and must be a string."
+        elif not drone_size or type(is_active) is not int:
             error = "Drone Size is required."
+        
         # register a drone
 
         if error is None:
@@ -128,15 +165,15 @@ def drone(owner_id):
                     INSERT INTO drone (serial_number, display_name, drone_size, owner_id, is_active)
                     VALUES (?, ?, ?, ?, ?)
                     """
-                db.execute(
+                id = db.execute(
                     query,
                     (serial_number, display_name, drone_size, owner_id, is_active),
-                )
+                ).lastrowid
                 db.commit()
             except db.IntegrityError:
                 error = f"Drone {display_name} is already registered."
             else:
-                return json.dumps({"success": display_name})
+                return json.dumps({"Drone_id": id})
         # if we don't end up being able to register, return the error
         return json.dumps({"error": error})
 
@@ -185,13 +222,16 @@ def drone(owner_id):
         serial_number = body["serial_number"]
         display_name = body["display_name"]
         is_active = body["is_active"]
+        drone_size = body["drone_size"]
 
-        if not serial_number:
-            error = "Serial Number is required"
-        elif not display_name:
-            error = "Display Name is required."
-        elif not is_active:
+        if not serial_number or type(serial_number) is not str:
+            error = "Serial Number is required and must be a string."
+        elif not display_name or type(display_name) is not str:
+            error = "Display Name is required and must be a string."
+        elif not is_active or type(is_active) is not int:
             error = "Active State is required."
+        elif not drone_size or type(is_active) is not int:
+            error = "Drone Size is required."
         
         query = """
             SELECT *
@@ -205,12 +245,12 @@ def drone(owner_id):
             try:
                 query = """
                     UPDATE drone
-                    SET display_name = ?, is_active = ? 
+                    SET display_name = ?, is_active = ?, drone_size = ?
                     WHERE serial_number = ?
                     """
                 db.execute(
                     query,
-                    (display_name, is_active, serial_number),
+                    (display_name, is_active,drone_size ,serial_number),
                 )
                 db.commit()
                 return json.dumps({"Updated drone with serial ": serial_number})

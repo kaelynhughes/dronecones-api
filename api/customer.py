@@ -118,14 +118,21 @@ def checkout(user_id):
             for product, product_id in products.items():
                 if product_id: # might want to add later to check to see if stock can handle
                     query = """ 
+                    SELECT stock
+                    FROM product
+                    WHERE id = ?
+                    """
+                    product_stock = db.execute(query, (product_id,)).fetchone()
+                    if product_stock["stock"] <= 0:
+                        error = f"We are out of stock of product {product_id}."
+                        return json.dumps({"error": error})
+                    query = """ 
                     UPDATE product
                     SET stock = stock - 1
                     WHERE id = ?
                     """
                     db.execute(query, (product_id,))
-                    print(
-                        "removed stock " + str(product_id)
-                    )  # maybe return the stocks in json?
+                    # maybe return the stocks in json?
 
             query = """
                 INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
@@ -169,14 +176,12 @@ def checkout(user_id):
                     topping_2,
                     topping_3,
                     full_order_id,
-                    drone_id[0],
+                    drone_id["id"],
                 ),
-            )
+            ).lastrowid
             db.commit()
 
-            return json.dumps(
-                "success"
-            )  # will want to return more here later
+            return json.dumps({"full_order_id": full_order_id, "ordered_cone_id": order})  # will want to return more here later
 
         return json.dumps({"error": error})
 
