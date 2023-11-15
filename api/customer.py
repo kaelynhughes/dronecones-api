@@ -18,25 +18,28 @@ def menu():
     query = """
         SELECT display_name, price_per_unit 
         FROM product 
-        WHERE product_type = 'cone' AND NOT stock = 0
+        WHERE product_type = 'Cone' AND NOT stock = 0
         """
-    cones = db.execute(query).fetchall()
+    conesResp = db.execute(query).fetchall()
+    cones = [dict(row) for row in conesResp]
     print(cones)
 
     query = """
         SELECT display_name, price_per_unit
         FROM product
-        WHERE product_type = 'flavor' AND NOT stock = 0
+        WHERE product_type = 'IceCream' AND NOT stock = 0
         """
-    icecream = db.execute(query).fetchall()
+    icecreamResp = db.execute(query).fetchall()
+    icecream = [dict(row) for row in icecreamResp]
     print(icecream)
 
     query = """
         SELECT display_name, price_per_unit
         FROM product
-        WHERE product_type = 'topping' AND NOT stock = 0
+        WHERE product_type = 'Topping' AND NOT stock = 0
         """
-    toppings = db.execute(query).fetchall()
+    toppingsResp = db.execute(query).fetchall()
+    toppings = [dict(row) for row in toppingsResp]
     print(toppings)
 
     if menu is None:
@@ -116,7 +119,9 @@ def checkout(user_id):
 
         if not error:
             for product, product_id in products.items():
-                if product_id: # might want to add later to check to see if stock can handle
+                if (
+                    product_id
+                ):  # might want to add later to check to see if stock can handle
                     query = """ 
                     SELECT stock
                     FROM product
@@ -158,8 +163,8 @@ def checkout(user_id):
             drone_id = db.execute(query).fetchone()
             if not drone_id:
                 error = "No drones are active"
-                return json.dumps({"error": error}) #hot fix make look better later
-            
+                return json.dumps({"error": error})  # hot fix make look better later
+
             query = """
                 INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -181,7 +186,9 @@ def checkout(user_id):
             ).lastrowid
             db.commit()
 
-            return json.dumps({"full_order_id": full_order_id, "ordered_cone_id": order})  # will want to return more here later
+            return json.dumps(
+                {"full_order_id": full_order_id, "ordered_cone_id": order}
+            )  # will want to return more here later
 
         return json.dumps({"error": error})
 
