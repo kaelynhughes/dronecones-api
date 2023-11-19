@@ -16,7 +16,7 @@ def menu():
     db = get_db()
     error = None
     query = """
-        SELECT display_name, price_per_unit, id, product_type 
+        SELECT display_name, price_per_unit, id, product_type, stock 
         FROM product 
         WHERE product_type = 'Cone' AND NOT stock = 0
         """
@@ -25,7 +25,7 @@ def menu():
     print(cones)
 
     query = """
-        SELECT display_name, price_per_unit, id, product_type
+        SELECT display_name, price_per_unit, id, product_type, stock
         FROM product
         WHERE product_type = 'IceCream' AND NOT stock = 0
         """
@@ -34,7 +34,7 @@ def menu():
     print(icecream)
 
     query = """
-        SELECT display_name, price_per_unit, id, product_type
+        SELECT display_name, price_per_unit, id, product_type,stock
         FROM product
         WHERE product_type = 'Topping' AND NOT stock = 0
         """
@@ -244,4 +244,13 @@ def account(customer_id):
                 """
             db.execute(query, (generate_password_hash(body["password"])))
             msg += " password has been updated"
-        return json.dumps(msg)
+
+        if "is_active" in body:
+            query = """
+                UPDATE user
+                SET is_active = ?
+                WHERE id = ?
+                """
+            db.execute(query, (body["is_active"], customer_id))
+            msg += " activity has been updated"
+        return json.dumps({"success": msg})
