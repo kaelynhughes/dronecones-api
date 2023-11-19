@@ -115,10 +115,10 @@ def earnings(owner_id):
             WHERE drone_id = ?
             """
             orders = db.execute(query, (drone_id,)).fetchall()
-            if drones is None:
+            if orders is None:
                 error = "This feature is not available yet - check back later!"
             elif len(orders) == 0:
-                error = "No orders have been submitted!"
+                error = "No orders have been submitted!" #make sure this is working correctly
             else:
                 for order in orders:
                     full_order_id = order["order_id"]
@@ -128,7 +128,7 @@ def earnings(owner_id):
                     WHERE id = ?
                     """
                     full_order = db.execute(query, (full_order_id,)).fetchone()
-                    if drones is None:
+                    if full_order is None:
                         error = "This feature is not available yet - check back later!"
                     elif len(full_order) == 0:
                         error = "full order table has not be set up correclty!"
@@ -266,3 +266,69 @@ def drone(owner_id):
                 error = f"An error occurred while updating the drone with serial {serial_number}."
         return json.dumps({"error": error})
         # update a drone's record - change info, deactivate
+
+
+@bp.route("/history", methods=["GET"])
+def history(owner_id):
+    if request.method == "GET":
+        db = get_db()
+    error = None
+
+    query = """
+    SELECT id
+    FROM drone
+    WHERE owner_id = ?
+    """
+    drones = db.execute(query, (owner_id,)).fetchall()
+
+    order_list = []
+    if drones is None:
+        error = "This feature is not available yet - check back later!"
+    elif len(drones) == 0:
+        error = "No drones have been registered!"
+    else:
+
+        for (
+            drone
+        ) in (
+            drones
+        ):  # change to have front in pass in a list of drones instead of looping through yourself.
+
+            drone_id = drone["id"]
+            query = """
+            SELECT *
+            FROM ordered_cone
+            WHERE drone_id = ?
+            ORDER BY id DESC
+            LIMIT 50
+            """ # will not limit to only 50 because we are only limiting it for each drone.
+            orders = db.execute(query, (drone_id,)).fetchall()
+            ordered_cone_dict = [dict(row) for row in orders]
+
+            if drones is None:
+                error = "This feature is not available yet - check back later!"
+            else:
+                for order in ordered_cone_dict:
+                    full_order_id = order["order_id"]
+                    query = """
+                    SELECT employee_cut, order_time
+                    FROM full_order
+                    WHERE id = ?
+                    """
+                    full_order = db.execute(query, (full_order_id,)).fetchall()
+                    
+                    if full_order is None:
+                        error = "This feature is not available yet - check back later!"
+                    elif len(full_order) == 0:
+                        error = "full order table has not be set up correclty!"
+                    else:
+                        for row in full_order:
+                            order.update(dict(row))
+                        order_list.append(order)
+
+
+
+    if error:
+        return json.dumps({"error": error})
+    else:
+        return json.dumps({"history": order_list})
