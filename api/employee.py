@@ -287,44 +287,41 @@ def history(owner_id):
     elif len(drones) == 0:
         error = "No drones have been registered!"
     else:
+        drone_ids = []
+        for drone in drones:  # change to have front in pass in a list of drones instead of looping through yourself.
+            drone_ids.append(drone["id"])
 
-        for (
-            drone
-        ) in (
-            drones
-        ):  # change to have front in pass in a list of drones instead of looping through yourself.
+        placeholders = ', '.join(['?'] * len(drone_ids))
+        query = f"""
+        SELECT *
+        FROM ordered_cone
+        WHERE drone_id IN ({placeholders})
+        ORDER BY id DESC
+        LIMIT 50
+        """ 
+        orders = db.execute(query, drone_ids).fetchall()
+        ordered_cone_dict = [dict(row) for row in orders]
 
-            drone_id = drone["id"]
-            query = """
-            SELECT *
-            FROM ordered_cone
-            WHERE drone_id = ?
-            ORDER BY id DESC
-            LIMIT 50
-            """ # will not limit to only 50 because we are only limiting it for each drone.
-            orders = db.execute(query, (drone_id,)).fetchall()
-            ordered_cone_dict = [dict(row) for row in orders]
+        if drones is None:
+            error = "This feature is not available yet - check back later!"
+        else:
+            for order in ordered_cone_dict:
+                full_order_id = order["order_id"]
+                query = """
+                SELECT employee_cut, order_time
+                FROM full_order
+                WHERE id = ?
+                """
+                full_order = db.execute(query, (full_order_id,)).fetchall()
 
-            if drones is None:
-                error = "This feature is not available yet - check back later!"
-            else:
-                for order in ordered_cone_dict:
-                    full_order_id = order["order_id"]
-                    query = """
-                    SELECT employee_cut, order_time
-                    FROM full_order
-                    WHERE id = ?
-                    """
-                    full_order = db.execute(query, (full_order_id,)).fetchall()
-                    
-                    if full_order is None:
-                        error = "This feature is not available yet - check back later!"
-                    elif len(full_order) == 0:
-                        error = "full order table has not be set up correclty!"
-                    else:
-                        for row in full_order:
-                            order.update(dict(row))
-                        order_list.append(order)
+                if full_order is None:
+                    error = "This feature is not available yet - check back later!"
+                elif len(full_order) == 0:
+                    error = "full order table has not be set up correclty!"
+                else:
+                    for row in full_order:
+                        order.update(dict(row))
+                    order_list.append(order)
 
 
 
