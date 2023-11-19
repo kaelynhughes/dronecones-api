@@ -73,14 +73,14 @@ def accounting(): #does this need to be product()
         stock = body["stock"]
         price_per_unit = body["price_per_unit"]
 
-        if not id or type(id) is int:
-            error = "Id is required and must be a string."
-        elif not display_name or type(display_name) is str:
+        if not id or type(id) is not int:
+            error = "Id is required and must be a integer."
+        elif not display_name or type(display_name) is not str:
             error = "Display Name is required and must be a string."
-        elif not stock or type(stock) is int:
-            error = "Stock is required."
-        elif not price_per_unit or type(price_per_unit) is int:
-            error = "Price Per Unit is required."
+        elif not stock or type(stock) is not int:
+            error = "Stock is required and must be a integer."
+        elif not price_per_unit or type(price_per_unit) is not int:
+            error = "Price Per Unit is required and must be a integer."
 
         query = """
             SELECT *
@@ -174,4 +174,38 @@ def user():
 
     if request.method == "PUT":
         db = get_db()
+        body = request.get_json()
+
+        username = body["username"]
+        is_active = body["is_active"]
+
+        if not id or type(id) is not int:
+            error = "Id is required and must be a string."
+        elif not is_active or type(is_active) is not str:
+            error = "Display Name is required and must be a string."
+
+        query = """
+            SELECT *
+            FROM user
+            WHERE username = ?
+            """
+        existing_product = db.execute(query, (username,)).fetchone()
+        if not existing_product:
+            error = f"Couldn't find user with username {username} because it does not exist."
+        else:
+            try:
+                query = """
+                    UPDATE user
+                    SET is_active = ?
+                    WHERE username = ?
+                    """
+                db.execute(
+                    query,
+                    (username,),
+                )
+                db.commit()
+                return json.dumps({"Updated user with username ": username})
+            except db.IntegrityError:
+                error = f"An error occurred while updating the user with username {id}."
+        return json.dumps({"error": error})
         # update a user's info - this will be used to ban them

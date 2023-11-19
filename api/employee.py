@@ -237,9 +237,9 @@ def drone(owner_id):
         elif not display_name or type(display_name) is not str:
             error = "Display Name is required and must be a string."
         elif not is_active or type(is_active) is not int:
-            error = "Active State is required."
+            error = "Active State is required and must be a integer."
         elif not drone_size or type(is_active) is not int:
-            error = "Drone Size is required."
+            error = "Drone Size is required and must be a integer."
 
         query = """
             SELECT *
