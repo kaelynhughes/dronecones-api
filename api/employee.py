@@ -293,22 +293,23 @@ def history(owner_id):
 
             placeholders = ', '.join(['?'] * len(drone_ids))
             query = f"""
-            SELECT *
+            SELECT DISTINCT order_id
             FROM ordered_cone
             WHERE drone_id IN ({placeholders})
             ORDER BY id DESC
             LIMIT 50
-            """ 
+            """ # added distinct so it shouldn't replicate orders bc we are doing an ordered cone and there are multiple ordered cones in an order
             orders = db.execute(query, drone_ids).fetchall()
-            ordered_cone_dict = [dict(row) for row in orders]
+            #ordered_cone_dict = [dict(row) for row in orders]
+            full_order_ids_dict = [dict(row) for row in orders]
 
-            if drones is None:
-                error = "This feature is not available yet - check back later!"
+            if orders is None:
+                error = "Full Orders table is not set up yet"
             else:
-                for order in ordered_cone_dict:
-                    full_order_id = order["order_id"]
+                for order_id_line in full_order_ids_dict:
+                    full_order_id = order_id_line["order_id"]
                     query = """
-                    SELECT employee_cut, order_time
+                    SELECT id, employee_cut, order_time
                     FROM full_order
                     WHERE id = ?
                     """
@@ -319,13 +320,28 @@ def history(owner_id):
                     elif len(full_order) == 0:
                         error = "full order table has not be set up correclty!"
                     else:
-                        for row in full_order:
-                            order.update(dict(row))
-                        order_list.append(order)
+                        full_order_dict = [dict(row) for row in full_order]
+                        for order in full_order_dict:
+                            query = """
+                                    SELECT *
+                                    FROM ordered_cone
+                                    WHERE order_id = ?
+                                    """ 
+                            ordered_cones = db.execute(query, (full_order_id,)).fetchall()
+
+                            if ordered_cones is None:
+                                error = "This feature is not available yet - check back later!"
+                            elif len(ordered_cones) == 0:
+                                error = "Ordered Cone table has not be set up correctly!"
+                            else:
+                                ordered_cone_dict = [dict(row) for row in ordered_cones]
+                                order["cones"] = ordered_cone_dict
+                                order_list.append(order)
+                        #order_list.append(order)
 
 
 
     if error:
         return json.dumps({"error": error})
     else:
-        return json.dumps({"history": order_list})
+        return json.dumps({"orders_history": order_list})

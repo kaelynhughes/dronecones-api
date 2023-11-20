@@ -93,7 +93,7 @@ def accounting(): #does this need to be product()
         else:
             try:
                 query = """
-                    UPDATE stock
+                    UPDATE product
                     SET display_name = ?, stock = ?, price_per_unit = ?
                     WHERE id = ?
                     """
@@ -179,9 +179,9 @@ def user():
         username = body["username"]
         is_active = body["is_active"]
 
-        if not id or type(id) is not int:
+        if not username or type(username) is not str:
             error = "Id is required and must be a string."
-        elif not is_active or type(is_active) is not str:
+        elif not is_active or type(is_active) is not int:
             error = "Display Name is required and must be a string."
 
         query = """
@@ -201,7 +201,7 @@ def user():
                     """
                 db.execute(
                     query,
-                    (username,),
+                    (is_active, username)
                 )
                 db.commit()
                 return json.dumps({"Updated user with username ": username})
@@ -209,3 +209,46 @@ def user():
                 error = f"An error occurred while updating the user with username {id}."
         return json.dumps({"error": error})
         # update a user's info - this will be used to ban them
+
+@bp.route("/history", methods=["GET"])
+def history():
+    if request.method == "GET":
+        db = get_db()
+        error = None
+        order_list = []
+
+        query = """
+                SELECT *
+                FROM full_order
+                ORDER BY id DESC
+                LIMIT 50
+                """
+        orders = db.execute(query).fetchall()
+        
+
+        if orders is None:
+                error = "This feature is not available yet - check back later!"
+        else:
+            full_order_dict = [dict(row) for row in orders]
+            for order in full_order_dict:
+                full_order_id = order["id"]
+                query = """
+                        SELECT *
+                        FROM ordered_cone
+                        WHERE order_id = ?
+                        """ 
+                ordered_cones = db.execute(query, (full_order_id,)).fetchall()
+
+                if ordered_cones is None:
+                    error = "This feature is not available yet - check back later!"
+                elif len(ordered_cones) == 0:
+                    error = "Ordered Cone table has not be set up correclty!"
+                else:
+                    ordered_cone_dict = [dict(row) for row in ordered_cones]
+                    order["cones"] = ordered_cone_dict
+                    order_list.append(order)
+
+        if error:
+            return json.dumps({"error": error})
+        else:
+            return json.dumps({"orders_history": order_list})
