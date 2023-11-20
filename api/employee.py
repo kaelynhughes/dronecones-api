@@ -95,7 +95,7 @@ def earnings(owner_id):
     WHERE owner_id = ?
     """
     drones = db.execute(query, (owner_id,)).fetchall()
-    # drones_dict = {}
+    
     if drones is None:
         error = "This feature is not available yet - check back later!"
     elif len(drones) == 0:
@@ -115,10 +115,10 @@ def earnings(owner_id):
             WHERE drone_id = ?
             """
             orders = db.execute(query, (drone_id,)).fetchall()
-            if drones is None:
+            if orders is None:
                 error = "This feature is not available yet - check back later!"
             elif len(orders) == 0:
-                error = "No orders have been submitted!"
+                error = "No orders have been submitted!" #make sure this is working correctly
             else:
                 for order in orders:
                     full_order_id = order["order_id"]
@@ -128,7 +128,7 @@ def earnings(owner_id):
                     WHERE id = ?
                     """
                     full_order = db.execute(query, (full_order_id,)).fetchone()
-                    if drones is None:
+                    if full_order is None:
                         error = "This feature is not available yet - check back later!"
                     elif len(full_order) == 0:
                         error = "full order table has not be set up correclty!"
@@ -237,9 +237,9 @@ def drone(owner_id):
         elif not display_name or type(display_name) is not str:
             error = "Display Name is required and must be a string."
         elif not is_active or type(is_active) is not int:
-            error = "Active State is required."
+            error = "Active State is required and must be a integer."
         elif not drone_size or type(is_active) is not int:
-            error = "Drone Size is required."
+            error = "Drone Size is required and must be a integer."
 
         query = """
             SELECT *
@@ -266,3 +266,82 @@ def drone(owner_id):
                 error = f"An error occurred while updating the drone with serial {serial_number}."
         return json.dumps({"error": error})
         # update a drone's record - change info, deactivate
+
+
+@bp.route("/history", methods=["GET"])
+def history(owner_id):
+    if request.method == "GET":
+        db = get_db()
+        error = None
+
+        query = """
+        SELECT id
+        FROM drone
+        WHERE owner_id = ?
+        """
+        drones = db.execute(query, (owner_id,)).fetchall()
+
+        order_list = []
+        if drones is None:
+            error = "This feature is not available yet - check back later!"
+        elif len(drones) == 0:
+            error = "No drones have been registered!"
+        else:
+            drone_ids = []
+            for drone in drones:  # change to have front in pass in a list of drones instead of looping through yourself.
+                drone_ids.append(drone["id"])
+
+            placeholders = ', '.join(['?'] * len(drone_ids))
+            query = f"""
+            SELECT DISTINCT order_id
+            FROM ordered_cone
+            WHERE drone_id IN ({placeholders})
+            ORDER BY id DESC
+            LIMIT 50
+            """ # added distinct so it shouldn't replicate orders bc we are doing an ordered cone and there are multiple ordered cones in an order
+            orders = db.execute(query, drone_ids).fetchall()
+            #ordered_cone_dict = [dict(row) for row in orders]
+            full_order_ids_dict = [dict(row) for row in orders]
+
+            if orders is None:
+                error = "Full Orders table is not set up yet"
+            else:
+                for order_id_line in full_order_ids_dict:
+                    full_order_id = order_id_line["order_id"]
+                    query = """
+                    SELECT id, employee_cut, order_time
+                    FROM full_order
+                    WHERE id = ?
+                    """
+                    full_order = db.execute(query, (full_order_id,)).fetchall()
+
+                    if full_order is None:
+                        error = "This feature is not available yet - check back later!"
+                    elif len(full_order) == 0:
+                        error = "full order table has not be set up correclty!"
+                    else:
+                        full_order_dict = [dict(row) for row in full_order]
+                        for order in full_order_dict:
+                            query = """
+                                    SELECT *
+                                    FROM ordered_cone
+                                    WHERE order_id = ?
+                                    """ 
+                            ordered_cones = db.execute(query, (full_order_id,)).fetchall()
+
+                            if ordered_cones is None:
+                                error = "This feature is not available yet - check back later!"
+                            elif len(ordered_cones) == 0:
+                                error = "Ordered Cone table has not be set up correctly!"
+                            else:
+                                ordered_cone_dict = [dict(row) for row in ordered_cones]
+                                order["cones"] = ordered_cone_dict
+                                order_list.append(order)
+                        #order_list.append(order)
+
+
+
+    if error:
+        return json.dumps({"error": error})
+    else:
+        return json.dumps({"orders_history": order_list})
