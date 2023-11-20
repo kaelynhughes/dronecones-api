@@ -29,6 +29,19 @@ def orders():
         # so that we don't end up returning the same few records over and over
         # this will be used in account management as well
 
+@bp.route("/users", methods=["GET"])
+def users():
+    db = get_db()
+    error = None
+    query = """
+        SELECT username, is_active, user_type, id 
+        FROM user 
+        """
+    usersResp = db.execute(query).fetchall()
+    users = [dict(row) for row in usersResp]
+
+    if users is None:
+        error = "No users were found"
 
 @bp.route("/product", methods=["GET", "PUT", "POST"])
 def accounting(): #does this need to be product()
@@ -82,11 +95,13 @@ def accounting(): #does this need to be product()
         elif not price_per_unit or type(price_per_unit) is not int:
             error = "Price Per Unit is required and must be a integer."
 
+
         query = """
             SELECT *
             FROM product 
             WHERE id = ?
             """
+
         existing_product = db.execute(query, (id,)).fetchone()
         if not existing_product:
             error = f"Couldn't find stock with id {id} because it does not exist."
@@ -110,18 +125,18 @@ def accounting(): #does this need to be product()
 
     if request.method == "POST":
         data = request.get_json()
-        displayName = data["displayName"]
-        pricePerUnit = data["pricePerUnit"]
-        productType = data["productType"]
+        display_name = data["display_name"]
+        price_per_unit = data["price_per_unit"]
+        product_type = data["product_type"]
         stock = data["stock"] if "stock" in data else 0
         db = get_db()
         error = None
 
-        if not displayName:
+        if not display_name:
             error = "Product name is required."
-        elif not pricePerUnit:
+        elif not price_per_unit:
             error = "Price per unit is required."
-        elif not productType:
+        elif not product_type:
             error = "Product type is required."
 
         if error is None:
@@ -130,13 +145,12 @@ def accounting(): #does this need to be product()
                     INSERT INTO product (display_name, stock, price_per_unit, product_type)
                     VALUES (?, ?, ?, ?)
                     """
-                db.execute(query, (displayName, stock, pricePerUnit, productType))
+                id = db.execute(query, (display_name, stock, price_per_unit, product_type)).lastrowid
                 db.commit()
             except db.IntegrityError:
                 error = "Sorry, something went wrong saving the product."
             else:
-                return json.dumps({"success": f"Product successfully added!"})
-        return json.dumps({"error": error})
+                return json.dumps({"success": id})
 
 
 @bp.route("/user", methods=["GET", "PUT"])
