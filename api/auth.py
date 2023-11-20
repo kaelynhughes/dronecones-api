@@ -47,9 +47,10 @@ def login():
         session["user_id"] = user["id"]
         user_type = user["user_type"]
         user_id = user["id"]
+        active = user["is_active"]
 
     flash(error)
-    response = {"error": error} if error else {"id": user_id, "user-type": user_type}
+    response = {"error": error} if error else {"id": user_id, "user_type": user_type, "is_active": active}
     return json.dumps(response)
 
 
@@ -60,6 +61,7 @@ def register():
 
     username = body["username"]
     password = body["password"]
+    user_type = body["user_type"]
     db = get_db()
     error = None
 
@@ -70,12 +72,12 @@ def register():
 
     if error is None:
         try:
-            db.execute(
-                "INSERT INTO user (username, password, user_type) VALUES (?, ?, ?)",
-                (username, generate_password_hash(password), "customer"),
-            )
+            id = db.execute(
+                "INSERT INTO user (username, password, user_type, is_active) VALUES (?, ?, ?, ?)",
+                (username, generate_password_hash(password), user_type, 1),
+            ).lastrowid
             db.commit()
         except db.IntegrityError:
             error = f"User {username} is already registered."
-    response = {"error": error} if error else {"success": username}
+    response = {"error": error} if error else {"success": id}
     return json.dumps(response)
