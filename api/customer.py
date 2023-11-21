@@ -122,15 +122,15 @@ def checkout(customer_id):
             query = """
                 SELECT id
                 FROM drone
-                WHERE is_active = 1 AND drone_size = """ + str(len(cones)) + """
+                WHERE is_active = 1 AND drone_size = ?
                 LIMIT 1
                 """
-            
-            drone_id = db.execute(query).fetchone()
+
+            drone_id = db.execute(query, (str(len(cones)),)).fetchone()
             if not drone_id:
                 error = "No drones are active"
                 return json.dumps({"error": error})  # hot fix make look better later
-            
+
             query = """
                 INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
                 VALUES (?, ?, ?, ?, ?)
@@ -169,9 +169,24 @@ def checkout(customer_id):
                         # maybe return the stocks in json?
 
                 query = """
-                    INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, full_order_id, drone_id)
+                    INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """
+
+                db.execute(
+                    query,
+                    (
+                        full_cone["cone"],
+                        full_cone["scoop_1"],
+                        full_cone["scoop_2"],
+                        full_cone["scoop_3"],
+                        full_cone["topping_1"],
+                        full_cone["topping_2"],
+                        full_cone["topping_3"],
+                        full_order_id,
+                        drone_id[0],
+                    ),
+                )
 
         db.commit()
 
