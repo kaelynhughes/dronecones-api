@@ -219,12 +219,12 @@ def history(customer_id):
                     """
             ordered_cone = db.execute(query, (order["id"],)).fetchall()
             ordered_cone_dict = [dict(row) for row in ordered_cone]
-            order["ordered_cone_dict"] = ordered_cone_dict
+            order["cones"] = ordered_cone_dict
 
-        return json.dumps({"full orders": orders_dict})
+        return json.dumps({"orders_history": orders_dict})
 
 
-@bp.route("/<int:customer_id>/account", methods=["GET", "PATCH"])
+@bp.route("/<int:customer_id>/account", methods=["GET", "PUT"])
 def account(customer_id):
     if request.method == "GET":
         db = get_db()
@@ -237,7 +237,7 @@ def account(customer_id):
         print(info)
         return json.dumps({info})
 
-    if request.method == "PATCH":
+    if request.method == "PUT":
         db = get_db()
         # update the relevant info about the user
         body = request.get_json()
