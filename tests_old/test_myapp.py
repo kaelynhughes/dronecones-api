@@ -48,6 +48,10 @@ class MyAppTestCase(unittest.TestCase):
         response = self.app.get('/customer/menu')
         print(response)
         self.assertEqual(response.status_code, 200)
+
+    def test_hello(client):
+        response = client.get('/hello')
+        assert response.data == b'Hello, World!'
         # ...
 
 if __name__ == '__main__':
