@@ -46,6 +46,7 @@ class MyAppTestCase(unittest.TestCase):
     def test_menu(self):
         # Example test
         response = self.app.get('/customer/menu')
+        print(response)
         self.assertEqual(response.status_code, 200)
         # ...
 
