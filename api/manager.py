@@ -42,8 +42,12 @@ def users():
 
     if users is None:
         error = "No users were found"
+    
+    if error is None:
+            return json.dumps(users)
+    return json.dumps(error)
 
-@bp.route("/product", methods=["GET", "PUT", "POST"])
+@bp.route("/product", methods=["GET", "PUT", "POST", "DELETE"])
 def accounting(): #does this need to be product()
     if request.method == "GET":
         db = get_db()
@@ -151,6 +155,42 @@ def accounting(): #does this need to be product()
                 error = "Sorry, something went wrong saving the product."
             else:
                 return json.dumps({"success": id})
+            
+    if request.method == "DELETE":
+        db = get_db()
+        error = None
+        body = request.get_json()
+        id = body["id"]
+
+        if not id:
+            error = "Product id is required"
+
+        query = """
+            SELECT *
+            FROM product 
+            WHERE id = ?
+            """
+
+        existing_product = db.execute(query, (id,)).fetchone()
+        if not existing_product:
+            error = "Product does not exist in database"
+
+        if error is None:
+            try:
+                query = """
+                    DELETE FROM product
+                    WHERE id = ?
+                    """
+                db.execute(
+                    query, (id,)
+                )
+                db.commit()
+            except db.IntegrityError:
+                error = f"An error occurred while deleting the product with id {id}"
+            else:
+                return json.dumps({"deleted_product": id})
+
+        return json.dumps({"error": error})
 
 
 @bp.route("/user", methods=["GET", "PUT"])
@@ -190,10 +230,10 @@ def user():
         db = get_db()
         body = request.get_json()
 
-        username = body["username"]
+        id = body["id"]
         is_active = body["is_active"]
 
-        if not username or type(username) is not str:
+        if not id or type(id) is not int:
             error = "Id is required and must be a string."
         elif not is_active or type(is_active) is not int:
             error = "Display Name is required and must be a string."
@@ -201,26 +241,26 @@ def user():
         query = """
             SELECT *
             FROM user
-            WHERE username = ?
+            WHERE id = ?
             """
-        existing_product = db.execute(query, (username,)).fetchone()
+        existing_product = db.execute(query, (id,)).fetchone()
         if not existing_product:
-            error = f"Couldn't find user with username {username} because it does not exist."
+            error = f"Couldn't find user with id {id} because it does not exist."
         else:
             try:
                 query = """
                     UPDATE user
                     SET is_active = ?
-                    WHERE username = ?
+                    WHERE id = ?
                     """
                 db.execute(
                     query,
-                    (is_active, username)
+                    (is_active, id)
                 )
                 db.commit()
-                return json.dumps({"Updated user with username ": username})
+                return json.dumps({"Updated user with id ": id})
             except db.IntegrityError:
-                error = f"An error occurred while updating the user with username {id}."
+                error = f"An error occurred while updating the user with id {id}."
         return json.dumps({"error": error})
         # update a user's info - this will be used to ban them
 
@@ -255,8 +295,6 @@ def history():
 
                 if ordered_cones is None:
                     error = "This feature is not available yet - check back later!"
-                elif len(ordered_cones) == 0:
-                    error = "Ordered Cone table has not be set up correclty!"
                 else:
                     ordered_cone_dict = [dict(row) for row in ordered_cones]
                     order["cones"] = ordered_cone_dict

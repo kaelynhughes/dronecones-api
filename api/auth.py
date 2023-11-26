@@ -49,6 +49,9 @@ def login():
         user_id = user["id"]
         active = user["is_active"]
 
+    if not active:
+        error = "This user has been deactivated.  Please contact us to appeal this ban."
+
     flash(error)
     response = {"error": error} if error else {"id": user_id, "user_type": user_type, "is_active": active}
     return json.dumps(response)
