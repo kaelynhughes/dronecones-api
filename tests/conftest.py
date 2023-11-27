@@ -6,6 +6,7 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 
 # Append the root directory to Python's path
 sys.path.append(os.path.join(current_directory, ".."))
+# above code was because my pyhton was not finding api or api.db correctly
 
 import pytest
 from api import create_app

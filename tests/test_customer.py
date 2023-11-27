@@ -1,11 +1,3 @@
-import sys
-import os
-import tempfile
-# Get the current file's directory
-current_directory = os.path.dirname(os.path.realpath(__file__))
-
-# Append the root directory to Python's path
-sys.path.append(os.path.join(current_directory, ".."))
 import pytest
 import json
 from api.db import get_db
