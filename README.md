@@ -20,6 +20,15 @@ flask --app api run --debug
 `py data.py`
 I used py because I have flask installed on py but might need to use .venv and then run the file
 
+## To begin Testing
+`pip install -e .. pytest`
+
+`pytest`
+
+or
+
+`pytest file`
+
 ### would print all drones
 
 ```
