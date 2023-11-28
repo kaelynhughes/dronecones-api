@@ -17,6 +17,6 @@ VALUES
 
 INSERT INTO drone (serial_number, display_name, drone_size, is_active, owner_id)
 VALUES
-    ('1', 'drone1', 1, 1, 2),
-    ('2', 'drone2', 2, 1, 2),
-    ('3', 'drone3', 3, 1, 2);
+    (1, 'drone1', 1, 1, 2),
+    (2, 'drone2', 2, 1, 2),
+    (3, 'drone3', 3, 1, 2);
