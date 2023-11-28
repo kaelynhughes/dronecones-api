@@ -14,7 +14,7 @@ def test_earnings(client, app):
 
 
 def test_drone(client, app):
-    response = client.get("employee/2/drone")
+    response = client.post("employee/2/drone", json={"display_name": "drone_test", "drone_size": 1, "serial_number": "4", "is_active": 1})
     assert response.status_code == 200
 
 
