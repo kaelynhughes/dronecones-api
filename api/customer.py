@@ -233,9 +233,10 @@ def account(customer_id):
             FROM user
             WHERE id = ?
             """
-        info = db.execute(query, customer_id).fetchone()
+        info = db.execute(query, (customer_id,)).fetchall()
         print(info)
-        return json.dumps({info})
+        customer = [dict(row) for row in info]
+        return json.dumps({"customer": customer})
 
     if request.method == "PUT":
         db = get_db()
