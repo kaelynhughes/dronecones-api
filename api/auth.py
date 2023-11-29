@@ -75,7 +75,13 @@ def register():
     except KeyError:
         return {
             "error": "Bad data: username, password, or user type not provided."
-        }, 401
+        }, 400
+    if len(username) < 1:
+        return {"error": "Username cannot be blank."}, 400
+    if len(password) < 1:
+        return {"error": "Password cannot be blank."}, 400
+    if user_type not in ["Customer", "Employee", "Manager"]:
+        return {"error": "Invalid user type."}, 400
     db = get_db()
 
     try:
@@ -85,6 +91,6 @@ def register():
         ).lastrowid
         db.commit()
     except db.IntegrityError:
-        return {"error": f"User {username} is already registered."}, 409
+        return {"error": f"The username {username} is not available."}, 409
     response = {"success": id}
-    return json.dumps(response, 201)
+    return json.dumps(response), 201
