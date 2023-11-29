@@ -121,7 +121,7 @@ def accounting(): #does this need to be product()
                     (display_name, stock, price_per_unit, id),
                 )
                 db.commit()
-                return json.dumps({"Updated stock with id ": stock})
+                return json.dumps({"success": id})
             except db.IntegrityError:
                 error = f"An error occurred while updating the stock with id {id}."
         return json.dumps({"error": error})
