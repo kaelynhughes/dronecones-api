@@ -200,7 +200,6 @@ def history(customer_id):
         orders = db.execute(query, (customer_id,)).fetchall()
         orders_dict = [dict(row) for row in orders]
         for order in orders_dict:
-            print(order)
             query = """
                     SELECT id, cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3
                     FROM ordered_cone
@@ -223,8 +222,9 @@ def account(customer_id):
             WHERE id = ?
             """
         info = db.execute(query, (customer_id,)).fetchall()
-        print(info)
         customer = [dict(row) for row in info]
+        if not customer:
+            return {"error": "No customer exists at this ID!"}, 404
         return json.dumps({"customer": customer})
 
     if request.method == "PUT":
@@ -239,7 +239,7 @@ def account(customer_id):
                 WHERE id = ?
                 """
             db.execute(query, (body["username"], customer_id))
-            msg += " username has been updated"
+            msg += "Username has been updated. "
 
         if "password" in body:
             query = """
@@ -247,8 +247,8 @@ def account(customer_id):
                 SET password = ?
                 WHERE id = ?
                 """
-            db.execute(query, (generate_password_hash(body["password"])))
-            msg += " password has been updated"
+            db.execute(query, (generate_password_hash(body["password"]), customer_id))
+            msg += "Password has been updated. "
 
         if "is_active" in body:
             query = """
@@ -257,5 +257,5 @@ def account(customer_id):
                 WHERE id = ?
                 """
             db.execute(query, (body["is_active"], customer_id))
-            msg += " activity has been updated"
+            msg += "Activity has been updated."
         return json.dumps({"success": msg})
