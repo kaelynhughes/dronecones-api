@@ -63,11 +63,11 @@ def drones(owner_id):
                     if drones is None:
                         return {
                             "error": "This feature is not available yet - check back later!"
-                        }, 404
+                        }  # , 404
                     elif len(full_order) == 0:
                         {
                             "error": "Full order table has not been set up correctly!"
-                        }, 404
+                        }  # , 404
                     else:
                         employee_cut += full_order["employee_cut"]
                         num_orders += 1
@@ -98,7 +98,9 @@ def earnings(owner_id):
     drones = db.execute(query, (owner_id,)).fetchall()
 
     if drones is None:
-        return {"error": "This feature is not available yet - check back later!"}, 404
+        return {
+            "error": "This feature is not available yet - check back later!"
+        }  # , 404
     elif len(drones) == 0:
         return {"error": "No drones have been registered!"}
     else:
@@ -133,15 +135,17 @@ def earnings(owner_id):
                     if full_order is None:
                         return {
                             "error": "This feature is not available yet - check back later!"
-                        }, 404
+                        }  # , 404
                     elif len(full_order) == 0:
                         return {
                             "error": "full order table has not be set up correctly!"
-                        }, 404
+                        }  # , 404
                     else:
                         employee_cut += full_order["employee_cut"]
             except Exception:
-                return {"error": "An unknown error occurred on our end. Sorry!"}, 500
+                return {
+                    "error": "An unknown error occurred on our end. Sorry!"
+                }  # , 500
 
     # Convert the rows to a list of dictionaries
     return json.dumps({"earnings": employee_cut})
@@ -162,18 +166,18 @@ def drone(owner_id):
         except KeyError:
             return {
                 "error": "Looks like we're missing some of the information we need to save your drone!"
-            }, 400
+            }  # , 400
 
         db = get_db()
 
         if type(serial_number) is not str:
-            return {"error": "Serial Number must be a string."}, 400
+            return {"error": "Serial Number must be a string."}  # , 400
         elif type(display_name) is not str:
-            return {"error": "Display Name must be a string."}, 400
+            return {"error": "Display Name must be a string."}  # , 400
         elif type(is_active) is not int:
-            return {"error": "Drone Size must be a number."}, 400
+            return {"error": "Drone Size must be a number."}  # , 400
         elif type(is_active) is not int:
-            return {"error": "Active status must be an integer."}, 400
+            return {"error": "Active status must be an integer."}  # , 400
 
         # register a drone
 
@@ -188,7 +192,7 @@ def drone(owner_id):
             ).lastrowid
             db.commit()
         except db.IntegrityError:
-            return {"error": f"Drone {display_name} is already registered."}, 409
+            return {"error": f"Drone {display_name} is already registered."}  # , 409
         else:
             return json.dumps({"drone_id": id})
 
@@ -199,7 +203,7 @@ def drone(owner_id):
         serial_number = body["serial_number"]
 
         if not serial_number:
-            return {"error": "Serial number is required."}, 400
+            return {"error": "Serial number is required."}  # , 400
 
         query = """
             SELECT *
@@ -210,7 +214,7 @@ def drone(owner_id):
         if not existing_drone:
             return {
                 "error": f"Couldn't find drone with serial number {serial_number} because it does not exist."
-            }, 404
+            }  # , 404
         try:
             query = """
                 DELETE FROM drone
@@ -223,7 +227,7 @@ def drone(owner_id):
         except db.IntegrityError:
             return {
                 "error": f"An error occurred while deleting the drone with serial {serial_number}"
-            }, 500
+            }  # , 500
         else:
             return json.dumps(
                 {f"Deleted drone with serial number {serial_number}": serial_number}
@@ -236,11 +240,11 @@ def drone(owner_id):
         body = request.get_json()
 
         if "serial_number" not in body:
-            return {"error": "Serial number is required."}, 400
+            return {"error": "Serial number is required."}  # , 400
 
         serial_number = body["serial_number"]
         if type(serial_number) is not str:
-            return {"error": "Serial number appears to be malformed."}, 400
+            return {"error": "Serial number appears to be malformed."}  # , 400
 
         query = """
             SELECT *
@@ -251,12 +255,12 @@ def drone(owner_id):
         if not existing_drone:
             return {
                 "error": f"Couldn't find drone with serial number {serial_number} because it does not exist."
-            }, 404
+            }  # , 404
 
         message = "Updated"
         if "display_name" in body:
             if type(body["display_name"]) is not str:
-                return {"error": "Display name must be a string."}, 400
+                return {"error": "Display name must be a string."}  # , 400
             try:
                 query = """
                     UPDATE drone
@@ -270,13 +274,13 @@ def drone(owner_id):
                 print(ex)
                 return {
                     "error": "An unexpected error occurred on our end when updating display name."
-                }, 500
+                }  # , 500
 
         if "is_active" in body:
             if type(body["is_active"]) is not int:
                 return {
                     "error": "Active status appears to have been sent incorrectly."
-                }, 400
+                }  # , 400
 
             try:
                 query = """
@@ -293,13 +297,13 @@ def drone(owner_id):
                 print(ex)
                 return {
                     "error": "An unexpected error occurred on our end when updating activity status."
-                }, 500
+                }  # , 500
 
         if "drone_size" in body:
             if type(body["drone_size"]) is not int:
                 return {
                     "error": "Drone size appears to have been sent incorrectly."
-                }, 400
+                }  # , 400
 
             try:
                 query = """
@@ -316,7 +320,7 @@ def drone(owner_id):
                 print(ex)
                 return {
                     "error": "An unexpected error occurred on our end when updating drone size."
-                }, 500
+                }  # , 500
         message += f" for drone with serial number {serial_number}."
 
         return json.dumps({"success": message})
@@ -339,7 +343,7 @@ def history(owner_id):
         if drones is None:
             return {
                 "error": "This feature is not available yet - check back later!"
-            }, 404
+            }  # , 404
         if len(drones) == 0:
             return {"error": "No drones have been registered!"}
 
@@ -358,7 +362,7 @@ def history(owner_id):
         """  # added distinct so it shouldn't replicate orders bc we are doing an ordered cone and there are multiple ordered cones in an order
         orders = db.execute(query, drone_ids).fetchall()
         if orders is None:
-            return {"error": "Full Orders table is not set up yet"}, 404
+            return {"error": "Full Orders table is not set up yet"}  # , 404
         full_order_ids_dict = [dict(row) for row in orders]
 
         for order_id_line in full_order_ids_dict:
@@ -375,7 +379,9 @@ def history(owner_id):
                     "error": "This feature is not available yet - check back later!"
                 }, 404
             if len(full_order) == 0:
-                return {"error": "Full order table has not been set up correctly!"}, 404
+                return {
+                    "error": "Full order table has not been set up correctly!"
+                }  # , 404
 
             full_order_dict = [dict(row) for row in full_order]
             for order in full_order_dict:
