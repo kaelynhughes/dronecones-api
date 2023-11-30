@@ -22,7 +22,6 @@ def menu():
         """
     conesResp = db.execute(query).fetchall()
     cones = [dict(row) for row in conesResp]
-    print(cones)
 
     query = """
         SELECT display_name, price_per_unit, id, product_type, stock
@@ -31,7 +30,6 @@ def menu():
         """
     icecreamResp = db.execute(query).fetchall()
     icecream = [dict(row) for row in icecreamResp]
-    print(icecream)
 
     query = """
         SELECT display_name, price_per_unit, id, product_type,stock
@@ -40,9 +38,8 @@ def menu():
         """
     toppingsResp = db.execute(query).fetchall()
     toppings = [dict(row) for row in toppingsResp]
-    print(toppings)
 
-    if menu is None:
+    if len(cones) == 0 and len(icecream) == 0 and len(toppings) == 0:
         error = "No menu available yet - check back later!"
     elif len(cones) == 0 or len(icecream) == 0 or len(toppings) == 0:
         error = "Looks like this store is running low on stock. Check again later!"
@@ -65,11 +62,12 @@ def checkout(customer_id):
                 LIMIT 1
                 """
         order_id = db.execute(query, (customer_id,)).fetchone()
-        error = None
         if not order_id:
-            error = "No orders"
+            return {
+                "error": "We can't find any previous orders for you. Try making one now!"
+            }
 
-        if not error:
+        try:
             query = """
                     SELECT *
                     FROM ordered_cone
@@ -77,124 +75,115 @@ def checkout(customer_id):
                     """
             ordered_cone = db.execute(query, (order_id[0],)).fetchall()
             ordered_cone_list = [dict(row) for row in ordered_cone]
+        except Exception:
+            return {"error": "Something went wrong on our end. Sorry!"}, 400
 
-            return json.dumps({"ordered cone": ordered_cone_list})
-        else:
-            return json.dumps({"error": error})
-        # get most recent order
+        return json.dumps({"ordered cone": ordered_cone_list})
 
     if request.method == "POST":
         db = get_db()
         body = request.get_json()
-        # create a full_order and then a ordered cone
-        total_price = body["total_price"]
-        employee_cut = body["employee_cut"]
-        profit = body["profit"]
-        order_time = body["order_time"]
+        # error handling - checking data formation
+        try:
+            total_price = body["total_price"]
+            employee_cut = body["employee_cut"]
+            profit = body["profit"]
+            order_time = body["order_time"]
+            cones = body["cones"]
+        except KeyError:
+            return (
+                {
+                    "error": "Something went wrong - we don't have all the information we need to place your order!"
+                },
+                400,
+            )
 
-        cones = body["cones"]
-        error = None
         for full_cone in cones:
-            cone = full_cone["cone"]
-            scoop_1 = full_cone["scoop_1"]
-            scoop_2 = full_cone["scoop_2"]
-            scoop_3 = full_cone["scoop_3"]
-            topping_1 = full_cone["topping_1"]
-            topping_2 = full_cone["topping_2"]
-            topping_3 = full_cone["topping_3"]
+            if "cone" not in full_cone or "scoop_1" not in full_cone:
+                return {
+                    "error": "Something went wrong - at least one of the cones you ordered is missing parts!"
+                }, 400
 
-            if not total_price:
-                error = "total_price is required."
-            elif not employee_cut:
-                error = "employee_cut is required."
-            elif not profit:
-                error = "profit is required."
-            elif not order_time:
-                error = "order_time is required."  # may be a back end thing
-            elif not cone:
-                error = "cone is required."
-            elif not full_cone:
-                error = "products dictionary is required."
-            elif not scoop_1:
-                error = "scoop_1 is required."
+        # putting stuff in the database
+        query = """
+            SELECT id
+            FROM drone
+            WHERE is_active = 1 AND drone_size = ?
+            LIMIT 1
+            """
 
-        if not error:
+        drone_id = db.execute(query, (str(len(cones)),)).fetchone()
+        if not drone_id:
+            return json.dumps({"error": "No drones are active. Try again later!"})
+
+        query = """
+            INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
+            VALUES (?, ?, ?, ?, ?)
+            """
+        full_order_id = db.execute(
+            query,
+            (
+                total_price,
+                employee_cut,
+                profit,
+                customer_id,
+                order_time,
+            ),
+        ).lastrowid
+
+        for full_cone in cones:
+            for product, product_id in full_cone.items():
+                if (
+                    product_id
+                ):  # might want to add later to check to see if stock can handle
+                    query = """ 
+                    SELECT stock, display_name
+                    FROM product
+                    WHERE id = ?
+                    """
+                    product_stock = db.execute(query, (product_id,)).fetchone()
+                    if not product_stock:
+                        return {
+                            "error": "Looks like one of the elements of your order doesn't exist anymore - try ordering something else!"
+                        }, 400
+                    if product_stock["stock"] <= 0:
+                        return json.dumps(
+                            {
+                                "error": f"We are out of stock of {product_stock['display_name']}."
+                            }
+                        )
+                    query = """ 
+                    UPDATE product
+                    SET stock = stock - 1
+                    WHERE id = ?
+                    """
+                    db.execute(query, (product_id,))
+
             query = """
-                SELECT id
-                FROM drone
-                WHERE is_active = 1 AND drone_size = ?
-                LIMIT 1
+                INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
 
-            drone_id = db.execute(query, (str(len(cones)),)).fetchone()
-            if not drone_id:
-                error = "No drones are active"
-                return json.dumps({"error": error})  # hot fix make look better later
-
-            query = """
-                INSERT INTO full_order (total_price, employee_cut, profit, customer_id, order_time)
-                VALUES (?, ?, ?, ?, ?)
-                """
-            full_order_id = db.execute(
+            db.execute(
                 query,
                 (
-                    total_price,
-                    employee_cut,
-                    profit,
-                    customer_id,
-                    order_time,
+                    full_cone["cone"],
+                    full_cone["scoop_1"],
+                    full_cone["scoop_2"] if "scoop_2" in full_cone else None,
+                    full_cone["scoop_3"] if "scoop_3" in full_cone else None,
+                    full_cone["topping_1"] if "topping_1" in full_cone else None,
+                    full_cone["topping_2"] if "topping_2" in full_cone else None,
+                    full_cone["topping_3"] if "topping_3" in full_cone else None,
+                    full_order_id,
+                    drone_id[0],
                 ),
-            ).lastrowid
-
-            for full_cone in cones:
-                for product, product_id in full_cone.items():
-                    if (
-                        product_id
-                    ):  # might want to add later to check to see if stock can handle
-                        query = """ 
-                        SELECT stock
-                        FROM product
-                        WHERE id = ?
-                        """
-                        product_stock = db.execute(query, (product_id,)).fetchone()
-                        if product_stock["stock"] <= 0:
-                            error = f"We are out of stock of product {product_id}."
-                            return json.dumps({"error": error})
-                        query = """ 
-                        UPDATE product
-                        SET stock = stock - 1
-                        WHERE id = ?
-                        """
-                        db.execute(query, (product_id,))
-                        # maybe return the stocks in json?
-
-                query = """
-                    INSERT INTO ordered_cone (cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3, order_id, drone_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """
-
-                db.execute(
-                    query,
-                    (
-                        full_cone["cone"],
-                        full_cone["scoop_1"],
-                        full_cone["scoop_2"],
-                        full_cone["scoop_3"],
-                        full_cone["topping_1"],
-                        full_cone["topping_2"],
-                        full_cone["topping_3"],
-                        full_order_id,
-                        drone_id[0],
-                    ),
-                )
+            )
 
         db.commit()
 
-        return json.dumps(
-            {"full_order_id": full_order_id}
-        )  # will want to return more here later
-
-    return json.dumps({"error": error})
+    return json.dumps(
+        {"full_order_id": full_order_id}
+    )  # will want to return more here later
 
 
 @bp.route("/<int:customer_id>/history", methods=["GET"])
@@ -211,7 +200,6 @@ def history(customer_id):
         orders = db.execute(query, (customer_id,)).fetchall()
         orders_dict = [dict(row) for row in orders]
         for order in orders_dict:
-            print(order)
             query = """
                     SELECT id, cone, scoop_1, scoop_2, scoop_3, topping_1, topping_2, topping_3
                     FROM ordered_cone
@@ -234,8 +222,9 @@ def account(customer_id):
             WHERE id = ?
             """
         info = db.execute(query, (customer_id,)).fetchall()
-        print(info)
         customer = [dict(row) for row in info]
+        if not customer:
+            return {"error": "No customer exists at this ID!"}, 404
         return json.dumps({"customer": customer})
 
     if request.method == "PUT":
@@ -250,7 +239,7 @@ def account(customer_id):
                 WHERE id = ?
                 """
             db.execute(query, (body["username"], customer_id))
-            msg += " username has been updated"
+            msg += "Username has been updated. "
 
         if "password" in body:
             query = """
@@ -258,8 +247,8 @@ def account(customer_id):
                 SET password = ?
                 WHERE id = ?
                 """
-            db.execute(query, (generate_password_hash(body["password"])))
-            msg += " password has been updated"
+            db.execute(query, (generate_password_hash(body["password"]), customer_id))
+            msg += "Password has been updated. "
 
         if "is_active" in body:
             query = """
@@ -268,5 +257,5 @@ def account(customer_id):
                 WHERE id = ?
                 """
             db.execute(query, (body["is_active"], customer_id))
-            msg += " activity has been updated"
+            msg += "Activity has been updated."
         return json.dumps({"success": msg})
