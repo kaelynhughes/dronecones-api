@@ -31,7 +31,7 @@ def login():
         username = body["username"]
         password = body["password"]
     except KeyError:
-        return {"error": "Bad data: username or password not provided."}, 400
+        return {"error": "Bad data: username or password not provided."}  # , 400
 
     db = get_db()
 
@@ -40,9 +40,9 @@ def login():
     user = db.execute("SELECT * FROM user WHERE username = ?", (username,)).fetchone()
 
     if user is None:
-        return {"error": "Incorrect username."}, 401
+        return {"error": "Incorrect username."}  # , 401
     elif not check_password_hash(user["password"], password):
-        return {"error": "Incorrect password."}, 401
+        return {"error": "Incorrect password."}  # , 401
 
     session.clear()
     try:
@@ -53,12 +53,12 @@ def login():
     except Exception:
         return {
             "error": "Looks like there's some malformed data on our end. Sorry!"
-        }, 404
+        }  # , 404
 
     if not active:
         return {
             "error": "This user has been deactivated.  Please contact us to appeal this ban."
-        }, 401
+        }  # , 401
 
     response = {"id": user_id, "user_type": user_type, "is_active": active}
     return json.dumps(response)
@@ -75,13 +75,13 @@ def register():
     except KeyError:
         return {
             "error": "Bad data: username, password, or user type not provided."
-        }, 400
+        }  # , 400
     if len(username) < 1:
-        return {"error": "Username cannot be blank."}, 400
+        return {"error": "Username cannot be blank."}  # , 400
     if len(password) < 1:
-        return {"error": "Password cannot be blank."}, 400
+        return {"error": "Password cannot be blank."}  # , 400
     if user_type not in ["Customer", "Employee", "Manager"]:
-        return {"error": "Invalid user type."}, 400
+        return {"error": "Invalid user type."}  # , 400
     db = get_db()
 
     try:
@@ -91,6 +91,6 @@ def register():
         ).lastrowid
         db.commit()
     except db.IntegrityError:
-        return {"error": f"The username {username} is not available."}, 409
+        return {"error": f"The username {username} is not available."}  # , 409
     response = {"success": id}
-    return json.dumps(response), 201
+    return json.dumps(response)  # , 201
