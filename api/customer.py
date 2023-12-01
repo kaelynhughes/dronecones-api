@@ -18,7 +18,7 @@ def menu():
     query = """
         SELECT display_name, price_per_unit, id, product_type, stock 
         FROM product 
-        WHERE product_type = 'Cone' AND NOT stock = 0
+        WHERE product_type = 'Cone'
         """
     conesResp = db.execute(query).fetchall()
     cones = [dict(row) for row in conesResp]
@@ -26,7 +26,7 @@ def menu():
     query = """
         SELECT display_name, price_per_unit, id, product_type, stock
         FROM product
-        WHERE product_type = 'IceCream' AND NOT stock = 0
+        WHERE product_type = 'IceCream'
         """
     icecreamResp = db.execute(query).fetchall()
     icecream = [dict(row) for row in icecreamResp]
@@ -34,7 +34,7 @@ def menu():
     query = """
         SELECT display_name, price_per_unit, id, product_type,stock
         FROM product
-        WHERE product_type = 'Topping' AND NOT stock = 0
+        WHERE product_type = 'Topping'
         """
     toppingsResp = db.execute(query).fetchall()
     toppings = [dict(row) for row in toppingsResp]
@@ -76,7 +76,7 @@ def checkout(customer_id):
             ordered_cone = db.execute(query, (order_id[0],)).fetchall()
             ordered_cone_list = [dict(row) for row in ordered_cone]
         except Exception:
-            return {"error": "Something went wrong on our end. Sorry!"}, 400
+            return {"error": "Something went wrong on our end. Sorry!"}  # , 400
 
         return json.dumps({"ordered cone": ordered_cone_list})
 
@@ -91,18 +91,15 @@ def checkout(customer_id):
             order_time = body["order_time"]
             cones = body["cones"]
         except KeyError:
-            return (
-                {
-                    "error": "Something went wrong - we don't have all the information we need to place your order!"
-                },
-                400,
-            )
+            return {
+                "error": "Something went wrong - we don't have all the information we need to place your order!"
+            }  # ,400,
 
         for full_cone in cones:
             if "cone" not in full_cone or "scoop_1" not in full_cone:
                 return {
                     "error": "Something went wrong - at least one of the cones you ordered is missing parts!"
-                }, 400
+                }  # , 400
 
         # putting stuff in the database
         query = """
@@ -145,7 +142,7 @@ def checkout(customer_id):
                     if not product_stock:
                         return {
                             "error": "Looks like one of the elements of your order doesn't exist anymore - try ordering something else!"
-                        }, 400
+                        }  # , 400
                     if product_stock["stock"] <= 0:
                         return json.dumps(
                             {
@@ -224,7 +221,7 @@ def account(customer_id):
         info = db.execute(query, (customer_id,)).fetchall()
         customer = [dict(row) for row in info]
         if not customer:
-            return {"error": "No customer exists at this ID!"}, 404
+            return {"error": "No customer exists at this ID!"}  # , 404
         return json.dumps({"customer": customer})
 
     if request.method == "PUT":
