@@ -18,7 +18,7 @@ def menu():
     query = """
         SELECT display_name, price_per_unit, id, product_type, stock 
         FROM product 
-        WHERE product_type = 'Cone' AND NOT stock = 0
+        WHERE product_type = 'Cone'
         """
     conesResp = db.execute(query).fetchall()
     cones = [dict(row) for row in conesResp]
@@ -26,7 +26,7 @@ def menu():
     query = """
         SELECT display_name, price_per_unit, id, product_type, stock
         FROM product
-        WHERE product_type = 'IceCream' AND NOT stock = 0
+        WHERE product_type = 'IceCream'
         """
     icecreamResp = db.execute(query).fetchall()
     icecream = [dict(row) for row in icecreamResp]
@@ -34,7 +34,7 @@ def menu():
     query = """
         SELECT display_name, price_per_unit, id, product_type,stock
         FROM product
-        WHERE product_type = 'Topping' AND NOT stock = 0
+        WHERE product_type = 'Topping'
         """
     toppingsResp = db.execute(query).fetchall()
     toppings = [dict(row) for row in toppingsResp]
