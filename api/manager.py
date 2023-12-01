@@ -191,43 +191,39 @@ def accounting():  # does this need to be product()
 
     if request.method == "POST":
         data = request.get_json()
-        display_name = data["display_name"]
-        price_per_unit = data["price_per_unit"]
-        product_type = data["product_type"]
-        stock = data["stock"] if "stock" in data else 0
+        try:
+            display_name = data["display_name"]
+            price_per_unit = data["price_per_unit"]
+            product_type = data["product_type"]
+            stock = data["stock"] if "stock" in data else 0
+        except KeyError:
+            return {
+                "error": "Looks like we're missing some of the information we need to create your product!"
+            }  # , 400
         db = get_db()
-        error = None
 
-        if not display_name:
-            error = "Product name is required."
-        elif not price_per_unit:
-            error = "Price per unit is required."
-        elif not product_type:
-            error = "Product type is required."
-
-        if error is None:
-            try:
-                query = """
-                    INSERT INTO product (display_name, stock, price_per_unit, product_type)
-                    VALUES (?, ?, ?, ?)
-                    """
-                id = db.execute(
-                    query, (display_name, stock, price_per_unit, product_type)
-                ).lastrowid
-                db.commit()
-            except db.IntegrityError:
-                error = "Sorry, something went wrong saving the product."
-            else:
-                return json.dumps({"success": id})
+        try:
+            query = """
+                INSERT INTO product (display_name, stock, price_per_unit, product_type)
+                VALUES (?, ?, ?, ?)
+                """
+            id = db.execute(
+                query, (display_name, stock, price_per_unit, product_type)
+            ).lastrowid
+            db.commit()
+        except db.IntegrityError:
+            error = "Sorry, something went wrong saving the product."
+        else:
+            return json.dumps({"success": id})
 
     if request.method == "DELETE":
         db = get_db()
-        error = None
         body = request.get_json()
+        if "id" not in body:
+            return {
+                "error": "Looks like we're missing the ID of the product you want to delete!"
+            }  # , 400
         id = body["id"]
-
-        if not id:
-            error = "Product id is required"
 
         query = """
             SELECT *
@@ -237,22 +233,19 @@ def accounting():  # does this need to be product()
 
         existing_product = db.execute(query, (id,)).fetchone()
         if not existing_product:
-            error = "Product does not exist in database"
+            return {"error": "Product does not exist in database"}  # , 404
 
-        if error is None:
-            try:
-                query = """
-                    DELETE FROM product
-                    WHERE id = ?
-                    """
-                db.execute(query, (id,))
-                db.commit()
-            except db.IntegrityError:
-                error = f"An error occurred while deleting the product with id {id}"
-            else:
-                return json.dumps({"deleted_product": id})
-
-        return json.dumps({"error": error})
+        try:
+            query = """
+                DELETE FROM product
+                WHERE id = ?
+                """
+            db.execute(query, (id,))
+            db.commit()
+        except db.IntegrityError:
+            error = f"An error occurred while deleting the product with id {id}."
+        else:
+            return json.dumps({"deleted_product": id})
 
 
 @bp.route("/user", methods=["GET", "PUT"])
@@ -261,66 +254,75 @@ def user():
         db = get_db()
         body = request.get_json()
 
-        error = None
+        if "id" not in body:
+            return {"error": "We need a user ID to get information on a user!"}  # , 400
         id = body["id"]
 
-        if not id or type(id) is not int:
-            error = "Id is required and must be a int."
+        if type(id) is not int:
+            return {"error": "ID must be a int."}  # , 400
+        try:
+            query = """
+            SELECT id, username, user_type, is_active
+            FROM user
+            WHERE id = ?
+            """
+            user = db.execute(query, (id,)).fetchall()
+        except Exception as ex:
+            print(ex)
+            return {
+                "error": f"Sorry, an unexpected error occurred on our end while fetching information for user {id}"
+            }  # , 500
 
-        query = """
-        SELECT *
-        FROM user
-        WHERE id = ?
-        """
-        user = db.execute(query, (id,)).fetchall()
-
-        if not error:
-            if user is None:
-                error = "This feature is not available yet - check back later!"
-            elif len(user) == 0:
-                error = f"No user has been registered with id {id}"
-            else:
-                user_dict = [dict(row) for row in user]
-
-        if error:
-            return json.dumps({"error": error})
-        else:
-            return json.dumps({"product": user_dict})
+        if user is None:
+            return {
+                "error": "This feature is not available yet - check back later!"
+            }  # , 400
+        if len(user) == 0:
+            return {"error": f"No user has been registered with id {id}"}  # , 404
+        user_dict = [dict(row) for row in user]
+        # 2.0 change this!! not a product
+        return json.dumps({"product": user_dict})
         # get more info about a specific user
 
     if request.method == "PUT":
         db = get_db()
         body = request.get_json()
 
+        if "id" not in body:
+            return {
+                "error": "We need the ID of the user you're trying to edit!"
+            }  # , 400
         id = body["id"]
-        is_active = body["is_active"]
-
         if not id or type(id) is not int:
-            error = "Id is required and must be a string."
-        elif not is_active or type(is_active) is not int:
-            error = "Display Name is required and must be a string."
+            return {"error": "ID is required and must be an integer."}  # , 400
 
-        query = """
-            SELECT *
-            FROM user
-            WHERE id = ?
-            """
-        existing_product = db.execute(query, (id,)).fetchone()
-        if not existing_product:
-            error = f"Couldn't find user with id {id} because it does not exist."
-        else:
-            try:
-                query = """
-                    UPDATE user
-                    SET is_active = ?
-                    WHERE id = ?
-                    """
-                db.execute(query, (is_active, id))
-                db.commit()
-                return json.dumps({"Updated user with id ": id})
-            except db.IntegrityError:
-                error = f"An error occurred while updating the user with id {id}."
-        return json.dumps({"error": error})
+        if "is_active" not in body:
+            return {"error": "Looks like the activity status "}
+        is_active = body["is_active"]
+        if type(is_active) is not int:
+            return {"error": "Activity status must be in integer form."}  # , 400
+
+        try:
+            query = """
+                SELECT *
+                FROM user
+                WHERE id = ?
+                """
+            existing_user = db.execute(query, (id,)).fetchone()
+            if not existing_user:
+                return {
+                    "error": f"Couldn't find user with id {id} because it does not exist."
+                }  # , 404
+            query = """
+                UPDATE user
+                SET is_active = ?
+                WHERE id = ?
+                """
+            db.execute(query, (is_active, id))
+            db.commit()
+            return json.dumps({"Updated user with id ": id})
+        except db.IntegrityError:
+            return {"error": f"An error occurred while updating the user with ID {id}."}
         # update a user's info - this will be used to ban them
 
 
@@ -328,7 +330,6 @@ def user():
 def history():
     if request.method == "GET":
         db = get_db()
-        error = None
         order_list = []
 
         query = """
@@ -340,10 +341,13 @@ def history():
         orders = db.execute(query).fetchall()
 
         if orders is None:
-            error = "This feature is not available yet - check back later!"
-        else:
-            full_order_dict = [dict(row) for row in orders]
-            for order in full_order_dict:
+            return {
+                "error": "This feature is not available yet - check back later!"
+            }  # , 500
+
+        full_order_dict = [dict(row) for row in orders]
+        for order in full_order_dict:
+            try:
                 full_order_id = order["id"]
                 query = """
                         SELECT *
@@ -353,13 +357,16 @@ def history():
                 ordered_cones = db.execute(query, (full_order_id,)).fetchall()
 
                 if ordered_cones is None:
-                    error = "This feature is not available yet - check back later!"
-                else:
-                    ordered_cone_dict = [dict(row) for row in ordered_cones]
-                    order["cones"] = ordered_cone_dict
-                    order_list.append(order)
+                    return {
+                        "error": "This feature is not available yet - check back later!"
+                    }  # , 500
+                ordered_cone_dict = [dict(row) for row in ordered_cones]
+                order["cones"] = ordered_cone_dict
+                order_list.append(order)
+            except Exception as ex:
+                print(ex)
+                return {
+                    "error": "Sorry, an unexpected error occurred on our end while processing your request!"
+                }  # , 500
 
-        if error:
-            return json.dumps({"error": error})
-        else:
-            return json.dumps({"orders_history": order_list})
+        return json.dumps({"orders_history": order_list})
