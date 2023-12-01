@@ -58,6 +58,7 @@ def login():
     if not active:
         return {
             "error": "This user has been deactivated.  Please contact us to appeal this ban."
+
         }  # , 401
 
     response = {"id": user_id, "user_type": user_type, "is_active": active}
