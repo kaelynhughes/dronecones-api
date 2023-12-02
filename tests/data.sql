@@ -12,8 +12,8 @@ VALUES
 
 INSERT INTO user (username, password, user_type, is_active)
 VALUES
-    ('customer1', 'password', 'customer', 1),
-    ('employee1', 'password', 'employee', 1);
+    ('customer1', 'password', 'Customer', 1),
+    ('employee1', 'password', 'Employee', 1);
 
 INSERT INTO drone (serial_number, display_name, drone_size, is_active, owner_id)
 VALUES
