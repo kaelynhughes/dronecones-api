@@ -255,4 +255,6 @@ def account(customer_id):
                 """
             db.execute(query, (body["is_active"], customer_id))
             msg += "Activity has been updated."
+
+        db.commit()
         return json.dumps({"success": msg})
