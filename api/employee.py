@@ -145,6 +145,8 @@ def earnings(owner_id):
                 }  # , 500
 
     # Convert the rows to a list of dictionaries
+    if employee_cut == 0:
+        return {"error": "No orders have been submitted!"}
     return json.dumps({"earnings": employee_cut})
     # return a single value with total earnings
     # example: {'earnings': 56600} for $566.00

@@ -23,20 +23,99 @@ def test_menu(client, app):
     assert len(menu["icecream"]) == 3
 
 
-def test_checkout(client, app):
+def test_checkout_get(client):
+    # Test the /customer/<customer_id>/checkout GET endpoint
     response = client.get("/customer/1/checkout")
     assert response.status_code == 200
+    assert "error" in response.json
+    data = {
+        "total_price": 500,
+        "employee_cut": 100,
+        "profit": 400,
+        "order_time": "2023-11-19 10:30:00",
+        "cones": [
+            {
+                "cone": 1,
+                "scoop_1": 7,
+                "scoop_2": 8,
+                "scoop_3": 9,
+                "topping_1": 4,
+                "topping_2": 5,
+                "topping_3": 6
+            },
+            {
+                "cone": 2,
+                "scoop_1": 8,
+                "scoop_2": 9,
+                "scoop_3": 7,
+                "topping_1": 5,
+                "topping_2": 6,
+                "topping_3": 4
+            }
+        ]
+    }
+    response = client.post("/customer/1/checkout", json=data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "full_order_id" in data
+
+
+
+def test_checkout_post(client):
+    # Test the /customer/<customer_id>/checkout POST endpoint
+    data = {
+        "total_price": 500,
+        "employee_cut": 100,
+        "profit": 400,
+        "order_time": "2023-11-19 10:30:00",
+        "cones": [
+            {
+                "cone": 1,
+                "scoop_1": 7,
+                "scoop_2": 8,
+                "scoop_3": 9,
+                "topping_1": 4,
+                "topping_2": 5,
+                "topping_3": 6
+            },
+            {
+                "cone": 2,
+                "scoop_1": 8,
+                "scoop_2": 9,
+                "scoop_3": 7,
+                "topping_1": 5,
+                "topping_2": 6,
+                "topping_3": 4
+            }
+        ]
+    }
+    response = client.post("/customer/1/checkout", json=data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "full_order_id" in data
 
 
 def test_history(client, app):
     response = client.get("/customer/1/history")
     assert response.status_code == 200
-    # response = client.get("/customer/1/history")
-    # assert response.status_code == 200
-    # earnings = json.loads(response.data)
-    # assert "orders_history" in earnings
+    data = json.loads(response.data)
+    assert "orders_history" in data
 
-
-def test_account(client, app):
+def test_account_get(client):
+    # Test the /customer/<customer_id>/account GET endpoint
     response = client.get("/customer/1/account")
     assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "customer" in data
+
+def test_account_put(client):
+    # Test the /customer/<customer_id>/account PUT endpoint
+    data = {
+        "username": "new_username",
+        "password": "new_password",
+        "is_active": 1
+    }
+    response = client.put("/customer/1/account", json=data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "success" in data
