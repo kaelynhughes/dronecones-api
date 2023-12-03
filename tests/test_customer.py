@@ -31,6 +31,10 @@ def test_checkout(client, app):
 def test_history(client, app):
     response = client.get("/customer/1/history")
     assert response.status_code == 200
+    # response = client.get("/customer/1/history")
+    # assert response.status_code == 200
+    # earnings = json.loads(response.data)
+    # assert "orders_history" in earnings
 
 
 def test_account(client, app):

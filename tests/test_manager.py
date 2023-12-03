@@ -14,12 +14,12 @@ def test_users(client, app):
 
 
 def test_product(client, app):
-    response = client.get("/manager/product")
+    response = client.get("/manager/product", json={"id": 1})
     assert response.status_code == 200
 
 
 def test_user(client, app):
-    response = client.get("/manager/user")
+    response = client.get("/manager/user", json={"id": 1})
     assert response.status_code == 200
 
 

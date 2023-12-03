@@ -96,7 +96,6 @@ def earnings(owner_id):
     WHERE owner_id = ?
     """
     drones = db.execute(query, (owner_id,)).fetchall()
-
     if drones is None:
         return {
             "error": "This feature is not available yet - check back later!"
@@ -104,13 +103,15 @@ def earnings(owner_id):
     elif len(drones) == 0:
         return {"error": "No drones have been registered!"}
     else:
+        drones_dict = [dict(drone) for drone in drones]
+        print(drones_dict)
         employee_cut = 0
-        for drone in drones:
+        for drone in drones_dict:
             # change to have front in pass in a list of drones instead of looping through yourself.
             try:
                 drone_id = drone["id"]
                 query = """
-                SELECT order_id
+                SELECT DISTINCT order_id
                 FROM ordered_cone
                 WHERE drone_id = ?
                 """
@@ -119,10 +120,6 @@ def earnings(owner_id):
                     return {
                         "error": "This feature is not available yet - check back later!"
                     }, 404
-                if len(orders) == 0:
-                    return {
-                        "error": "No orders have been submitted!"
-                    }  # make sure this is working correctly
 
                 for order in orders:
                     full_order_id = order["order_id"]
