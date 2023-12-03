@@ -81,13 +81,13 @@ def test_post_put_delete_drone(client, app):
     response = client.post("/employee/2/drone", json={"display_name": "Drone to Delete", "drone_size": 1, "serial_number": "6", "is_active": 1})
     assert response.status_code == 200
 
-    #check drone there
+    # check drone there
     response = client.get("/employee/2/drones")
     assert response.status_code == 200
     drones = json.loads(response.data).pop("drones")
     assert len(drones) == 4
 
-    #check drone there
+    # edit drone
     response = client.put("/employee/2/drone", json={"serial_number": "6", "is_active": 0 })
     assert response.status_code == 200
     assert "success" in json.loads(response.data)
