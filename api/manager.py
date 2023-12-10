@@ -54,7 +54,12 @@ def accounting():  # does this need to be product()
         body = request.get_json()
 
         error = None
-        id = body["id"]
+        try:
+            id = body["id"]
+        except KeyError:
+            return {
+                "error": "Looks like your missing the product id for the product!"
+            }
 
         if not id or type(id) is not int:
             return {"error": "Id is required and must be an integer."}
@@ -202,6 +207,15 @@ def accounting():  # does this need to be product()
             }  # , 400
         db = get_db()
 
+        if type(display_name) is not str:
+            return {"error": "Display Name must be a string."}  # , 400
+        elif type(price_per_unit) is not int:
+            return {"error": "price Per Unit must be a integer."}  # , 400
+        elif type(product_type) is not str:
+            return {"error": "Product Type must be a string."}  # , 400
+        elif type(stock) is not int:
+            return {"error": "Stock must be an integer."}  # , 400'
+    
         try:
             query = """
                 INSERT INTO product (display_name, stock, price_per_unit, product_type)
@@ -212,7 +226,10 @@ def accounting():  # does this need to be product()
             ).lastrowid
             db.commit()
         except db.IntegrityError:
-            error = "Sorry, something went wrong saving the product."
+            return {
+                "error": "Sorry, something went wrong saving the product."
+            }
+            
         else:
             return json.dumps({"success": id})
 
